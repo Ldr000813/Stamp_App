@@ -73,7 +73,7 @@ function StampInner() {
         )}
         {phase === "already" && <h2 className="text-center text-lg font-bold text-amber-600">{t("stamp_already")}</h2>}
         {phase === "error" && <h2 className="text-center text-lg font-bold text-red-600">{t("stamp_error")}</h2>}
-        {progress && <p className="text-center mt-3 text-lg font-bold text-[#33A6A0]">{t("progress", { done: progress.done, total: progress.total })}</p>}
+        {progress && <p className="text-center mt-3 text-lg font-bold text-[#33A6A0]">{t("collected")}: {progress.done}</p>}
 
         {(phase === "got" || phase === "already") && (
           <Link href="/" className="mt-6 block text-center rounded-full border border-[#33A6A0] text-[#33A6A0] font-bold py-3">
