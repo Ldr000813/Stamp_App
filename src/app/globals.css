@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --cream:#FBF7F0; --yellow:#F6C64B; --teal:#33A6A0; --ink:#4b4640; }
+body { background: var(--cream); color: var(--ink); }
