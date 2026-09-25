@@ -31,6 +31,7 @@ export default function Admin() {
   const [hardTarget, setHardTarget] = useState<any>(null);
   const [confirmCode, setConfirmCode] = useState("");
   const [confirmInput, setConfirmInput] = useState("");
+  const [qrModal, setQrModal] = useState<any>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -113,12 +114,7 @@ export default function Admin() {
   async function showQR(spot: any) {
     const url = `${window.location.origin}/stamp?spot=${spot.token}`;
     const dataUrl = await QRCode.toDataURL(url, { width: 512, margin: 2 });
-    const w = window.open("");
-    if (w) w.document.write(
-      `<title>QR: ${spot.name_ja}</title><div style="text-align:center;font-family:sans-serif">
-       <h3>${spot.name_ja} / ${spot.name_en}</h3><img src="${dataUrl}" />
-       <p style="word-break:break-all">${url}</p></div>`
-    );
+    setQrModal({ name_ja: spot.name_ja, name_en: spot.name_en, dataUrl, url });
   }
   function exportCSV() {
     const csv = Papa.unparse(spots);
@@ -242,6 +238,22 @@ export default function Admin() {
             <div className="flex gap-2 mt-4">
               <button onClick={closeHard} className="flex-1 border rounded py-2">キャンセル</button>
               <button onClick={doHard} disabled={confirmInput !== confirmCode} className="flex-1 rounded py-2 text-white bg-red-600 disabled:opacity-40">完全に削除する</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {qrModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setQrModal(null)}>
+          <div className="bg-white rounded-2xl max-w-xs w-full p-5 text-center" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-[#4b4640]">{qrModal.name_ja}</h3>
+            <p className="text-xs text-gray-400 mb-3">{qrModal.name_en}</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrModal.dataUrl} alt="QR" className="w-full max-w-[240px] mx-auto" />
+            <p className="text-[10px] text-gray-400 break-all mt-2">{qrModal.url}</p>
+            <div className="mt-4 flex gap-2">
+              <a href={qrModal.dataUrl} download={`qr-${qrModal.name_ja}.png`} className="flex-1 rounded-full border border-[#33A6A0] text-[#33A6A0] font-bold py-2 text-sm">画像を保存</a>
+              <button onClick={() => setQrModal(null)} className="flex-1 rounded-full bg-[#F6C64B] text-[#4b4640] font-bold py-2 text-sm">閉じる</button>
             </div>
           </div>
         </div>

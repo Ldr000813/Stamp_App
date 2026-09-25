@@ -7,12 +7,15 @@ import BottomNav from "@/components/BottomNav";
 export default function SpotDetail({ params }: { params: { id: string } }) {
   const { t, lang } = useI18n();
   const [spot, setSpot] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       const r = await fetch(`/api/spot?id=${params.id}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
       setSpot(r?.spot || null);
+      const e = await fetch(`/api/events?spotId=${params.id}`, { cache: "no-store" }).then((r) => r.json()).catch(() => ({ events: [] }));
+      setEvents(e.events || []);
       setLoading(false);
     })();
   }, [params.id]);
@@ -56,6 +59,31 @@ export default function SpotDetail({ params }: { params: { id: string } }) {
         )}
         {desc && <p className="mt-3 whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">{desc}</p>}
         {address && <p className="mt-3 text-sm text-gray-600">📍 {address}</p>}
+
+        {events.length > 0 && (
+          <div className="mt-5">
+            <h2 className="text-sm font-bold text-[#33A6A0] mb-2">🗓 {lang === "ja" ? "この店舗のイベント予定" : "Upcoming events here"}</h2>
+            <ul className="space-y-2">
+              {events.map((ev) => {
+                const d = new Date(ev.starts_at);
+                const wd = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+                const time = d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+                const day = lang === "ja"
+                  ? `${d.getMonth() + 1}月${d.getDate()}日(${wd})`
+                  : d.toLocaleDateString(locale, { month: "short", day: "numeric", weekday: "short" });
+                return (
+                  <li key={ev.id} className="rounded-xl border border-[#E6E0D2] bg-white p-3">
+                    <div className="text-xs font-bold text-amber-700">{day} {time}</div>
+                    <div className="font-bold text-[#4b4640] text-sm mt-0.5">{lang === "ja" ? ev.title_ja : ev.title_en}</div>
+                    {(lang === "ja" ? ev.description_ja : ev.description_en) && (
+                      <div className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{lang === "ja" ? ev.description_ja : ev.description_en}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
         {(spot.map_url || hasCoords || address) && (
           <a
             href={spot.map_url
