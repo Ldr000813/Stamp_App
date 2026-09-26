@@ -71,24 +71,24 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
     const key = spotId ?? "__none__";
     if (formSpot !== key) return null;
     return (
-      <form onSubmit={(e) => submit(e, spotId)} className="bg-white border border-emerald-200 rounded-lg p-3 space-y-2 mt-2">
+      <form onSubmit={(e) => submit(e, spotId)} className="f-card p-4 space-y-2 mt-2">
         <p className="text-sm font-bold text-emerald-700">{editingId ? "イベントを編集" : "この店舗のイベントを追加"}</p>
         <div className="grid grid-cols-2 gap-2">
-          <input className="border rounded p-2" placeholder="イベント名（日本語）" value={form.title_ja} onChange={(e) => set("title_ja", e.target.value)} required />
-          <input className="border rounded p-2" placeholder="Title (English)" value={form.title_en} onChange={(e) => set("title_en", e.target.value)} required />
+          <input className="f-input" placeholder="イベント名（日本語）" value={form.title_ja} onChange={(e) => set("title_ja", e.target.value)} required />
+          <input className="f-input" placeholder="Title (English)" value={form.title_en} onChange={(e) => set("title_en", e.target.value)} required />
           <div className="col-span-2 grid grid-cols-2 gap-2">
             <div><label className="text-xs text-gray-500">開始</label>
-              <input type="datetime-local" className="border rounded p-2 w-full" value={form.starts_at} onChange={(e) => set("starts_at", e.target.value)} required /></div>
+              <input type="datetime-local" className="f-input" value={form.starts_at} onChange={(e) => set("starts_at", e.target.value)} required /></div>
             <div><label className="text-xs text-gray-500">終了（任意）</label>
-              <input type="datetime-local" className="border rounded p-2 w-full" value={form.ends_at} onChange={(e) => set("ends_at", e.target.value)} /></div>
+              <input type="datetime-local" className="f-input" value={form.ends_at} onChange={(e) => set("ends_at", e.target.value)} /></div>
           </div>
-          <textarea className="border rounded p-2 col-span-2" placeholder="説明（日本語）" value={form.description_ja} onChange={(e) => set("description_ja", e.target.value)} />
-          <textarea className="border rounded p-2 col-span-2" placeholder="Description (English)" value={form.description_en} onChange={(e) => set("description_en", e.target.value)} />
+          <textarea className="f-input col-span-2" placeholder="説明（日本語）" value={form.description_ja} onChange={(e) => set("description_ja", e.target.value)} />
+          <textarea className="f-input col-span-2" placeholder="Description (English)" value={form.description_en} onChange={(e) => set("description_en", e.target.value)} />
           <ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={token} />
         </div>
         <div className="flex gap-2">
-          <button className="rounded bg-emerald-600 text-white px-4 py-2">{editingId ? "更新" : "追加"}</button>
-          <button type="button" onClick={closeForm} className="rounded border px-4 py-2">キャンセル</button>
+          <button className="f-btn f-btn-primary">{editingId ? "更新" : "追加"}</button>
+          <button type="button" onClick={closeForm} className="f-btn f-btn-secondary">キャンセル</button>
         </div>
         {msg && <p className="text-red-600 text-sm">{msg}</p>}
       </form>
@@ -113,8 +113,8 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
                     {past && <span className="text-[10px] text-gray-400 ml-1">終了</span>}
                   </span>
                   <span className="flex gap-1 shrink-0">
-                    <button type="button" onClick={() => openEdit(spotId, ev)} className="text-xs border rounded px-2 py-0.5">編集</button>
-                    <button type="button" onClick={() => del(ev)} className="text-xs bg-red-600 text-white rounded px-2 py-0.5">削除</button>
+                    <button type="button" onClick={() => openEdit(spotId, ev)} className="f-btn f-btn-sm f-btn-secondary">編集</button>
+                    <button type="button" onClick={() => del(ev)} className="f-btn f-btn-sm f-btn-danger">削除</button>
                   </span>
                 </li>
               );
@@ -150,7 +150,7 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
                 <span className="font-bold">{s.name_ja}</span>
                 {cnt > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">予定 {cnt}</span>}
               </button>
-              <button type="button" onClick={() => openAdd(s.id)} className="text-sm bg-emerald-600 text-white rounded px-3 py-1 shrink-0">＋イベント追加</button>
+              <button type="button" onClick={() => openAdd(s.id)} className="f-btn f-btn-sm f-btn-primary shrink-0">＋イベント追加</button>
             </div>
             {open && (
               <div className="p-3">

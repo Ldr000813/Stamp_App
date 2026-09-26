@@ -53,31 +53,31 @@ export default function RewardManager({ token }: { token: string }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-bold text-[#4b4640]">特典（クリア特典）</h3>
-        <button onClick={openAdd} className="rounded-full bg-emerald-600 text-white text-sm font-bold px-4 py-2 shadow-sm">＋ 特典を追加</button>
+        <button onClick={openAdd} className="f-btn f-btn-primary rounded-full">＋ 特典を追加</button>
       </div>
       <p className="text-xs text-gray-500 mb-3">
         特典ごとに「解放に必要なスタンプ数」を設定できます。カウントされるのは、<strong>その特典を作成した時刻より後に押されたスタンプ</strong>だけです。
       </p>
 
       {showForm && (
-        <form onSubmit={submit} className="bg-gray-50 rounded-lg p-3 space-y-2 mb-4">
+        <form onSubmit={submit} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2 mb-4">
           <p className="text-sm font-bold text-emerald-700">{editingId ? "特典を編集" : "新しい特典"}</p>
           <div className="grid grid-cols-2 gap-2">
-            <input className="border rounded p-2" placeholder="特典名（日本語）例: 記念グッズ" value={form.title_ja} onChange={(e) => set("title_ja", e.target.value)} required />
-            <input className="border rounded p-2" placeholder="Title (English)" value={form.title_en} onChange={(e) => set("title_en", e.target.value)} />
+            <input className="f-input" placeholder="特典名（日本語）例: 記念グッズ" value={form.title_ja} onChange={(e) => set("title_ja", e.target.value)} required />
+            <input className="f-input" placeholder="Title (English)" value={form.title_en} onChange={(e) => set("title_en", e.target.value)} />
             <div className="col-span-2 flex items-center gap-2">
               <label className="text-sm text-gray-600">解放に必要なスタンプ数</label>
-              <input type="number" min={1} className="border rounded p-2 w-24" value={form.required_stamps} onChange={(e) => set("required_stamps", e.target.value)} />
+              <input type="number" min={1} className="f-input w-24" value={form.required_stamps} onChange={(e) => set("required_stamps", e.target.value)} />
               <span className="text-sm text-gray-500">個</span>
             </div>
-            <textarea className="border rounded p-2 col-span-2" placeholder="説明・受け取り方法（日本語）" value={form.body_ja} onChange={(e) => set("body_ja", e.target.value)} />
-            <textarea className="border rounded p-2 col-span-2" placeholder="Description / how to receive (English)" value={form.body_en} onChange={(e) => set("body_en", e.target.value)} />
+            <textarea className="f-input col-span-2" placeholder="説明・受け取り方法（日本語）" value={form.body_ja} onChange={(e) => set("body_ja", e.target.value)} />
+            <textarea className="f-input col-span-2" placeholder="Description / how to receive (English)" value={form.body_en} onChange={(e) => set("body_en", e.target.value)} />
             <div className="col-span-2"><label className="text-xs text-gray-500">画像（任意）</label>
               <ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={token} /></div>
           </div>
           <div className="flex gap-2">
-            <button className="rounded bg-emerald-600 text-white px-4 py-2">{editingId ? "更新" : "追加"}</button>
-            <button type="button" onClick={() => setShowForm(false)} className="rounded border px-4 py-2">キャンセル</button>
+            <button className="f-btn f-btn-primary">{editingId ? "更新" : "追加"}</button>
+            <button type="button" onClick={() => setShowForm(false)} className="f-btn f-btn-secondary">キャンセル</button>
           </div>
           {msg && <p className="text-red-600 text-sm">{msg}</p>}
         </form>
@@ -95,9 +95,9 @@ export default function RewardManager({ token }: { token: string }) {
                 <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 shrink-0">{x.required_stamps}個で解放</span>
               </span>
               <div className="flex gap-2 shrink-0">
-                <button onClick={() => openEdit(x)} className="text-sm border rounded px-3 py-1">編集</button>
-                <button onClick={() => toggle(x)} className="text-sm border rounded px-3 py-1">{x.active ? "無効化" : "有効化"}</button>
-                <button onClick={() => del(x)} className="text-sm bg-red-600 text-white rounded px-3 py-1">削除</button>
+                <button onClick={() => openEdit(x)} className="f-btn f-btn-sm f-btn-secondary">編集</button>
+                <button onClick={() => toggle(x)} className="f-btn f-btn-sm f-btn-secondary">{x.active ? "無効化" : "有効化"}</button>
+                <button onClick={() => del(x)} className="f-btn f-btn-sm f-btn-danger">削除</button>
               </div>
             </li>
           ))}

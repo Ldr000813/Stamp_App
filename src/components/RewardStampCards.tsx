@@ -5,7 +5,7 @@ import { useCachedFetch } from "@/lib/swr";
 
 // Renders every reward as the original stamp-card UI (grid of cells).
 // Cells filled = stamps earned AFTER that reward's created_at.
-export default function RewardStampCards({ participantId, tick = 0 }: { participantId: string; tick?: number }) {
+export default function RewardStampCards({ participantId }: { participantId: string }) {
   const { t, lang } = useI18n();
   const [selected, setSelected] = useState<any>(null);
   const locale = lang === "ja" ? "ja-JP" : "en-US";

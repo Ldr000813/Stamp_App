@@ -43,7 +43,7 @@ export default function Home() {
         <h2 className="text-lg font-bold text-[#33A6A0] text-center mb-1">{t("explore")}</h2>
         <p className="text-sm text-gray-600 text-center mb-4">{t("home_desc")}</p>
 
-        {participantId && <RewardStampCards participantId={participantId} tick={tick} />}
+        {participantId && <RewardStampCards participantId={participantId} />}
 
         <Link href="/spots" className="mt-6 block text-center rounded-full bg-[#F6C64B] text-[#4b4640] font-bold py-3 shadow-sm">
           {t("go_spots")}
