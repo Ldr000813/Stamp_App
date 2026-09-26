@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { useCachedFetch } from "@/lib/swr";
 import LangToggle from "@/components/LangToggle";
 import BottomNav from "@/components/BottomNav";
 import Coupon from "@/components/Coupon";
@@ -10,18 +11,10 @@ import RewardStampCards from "@/components/RewardStampCards";
 export default function Rewards() {
   const { t, lang } = useI18n();
   const { participantId, ready } = useAuth();
-  const [coupons, setCoupons] = useState<any[]>([]);
-  const [redeemed, setRedeemed] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (!ready || !participantId) return;
-    (async () => {
-      const cp = await fetch(`/api/coupons?participantId=${participantId}`, { cache: "no-store" })
-        .then((r) => r.json()).catch(() => ({ coupons: [], redeemed: {} }));
-      setCoupons(cp.coupons || []);
-      setRedeemed(cp.redeemed || {});
-    })();
-  }, [ready, participantId]);
+  const { data: cpData } = useCachedFetch<any>(participantId ? `/api/coupons?participantId=${participantId}` : null);
+  const coupons: any[] = cpData?.coupons || [];
+  const [redeemedLocal, setRedeemedLocal] = useState<Record<string, string>>({});
+  const redeemed = { ...(cpData?.redeemed || {}), ...redeemedLocal };
 
   async function redeemCoupon(id: string): Promise<boolean> {
     try {
@@ -31,7 +24,7 @@ export default function Rewards() {
       });
       if (!r.ok) return false;
       const j = await r.json();
-      setRedeemed((m) => ({ ...m, [id]: j.redeemed_at || new Date().toISOString() }));
+      setRedeemedLocal((m) => ({ ...m, [id]: j.redeemed_at || new Date().toISOString() }));
       return true;
     } catch { return false; }
   }

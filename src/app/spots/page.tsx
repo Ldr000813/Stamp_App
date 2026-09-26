@@ -1,25 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { useCachedFetch } from "@/lib/swr";
 import LangToggle from "@/components/LangToggle";
 import BottomNav from "@/components/BottomNav";
 
 export default function Spots() {
   const { t, lang } = useI18n();
-  const { participantId, ready } = useAuth();
-  const [spots, setSpots] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!ready) return;
-    (async () => {
-      const c = await fetch("/api/campaign", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
-      setSpots(c?.spots || []);
-      setLoading(false);
-    })();
-  }, [ready, participantId]);
+  const { data } = useCachedFetch<any>("/api/campaign");
+  const spots: any[] = data?.spots || [];
+  const loading = data === undefined;
 
   return (
     <>
@@ -37,7 +27,14 @@ export default function Spots() {
         </div>
 
         {loading ? (
-          <p className="text-center">{t("loading")}</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div className="skeleton w-28 h-28 rounded-full" />
+                <div className="skeleton h-3 w-20 rounded mt-2" />
+              </div>
+            ))}
+          </div>
         ) : spots.length === 0 ? (
           <p className="text-gray-500 text-center">—</p>
         ) : (

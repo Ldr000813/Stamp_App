@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { useCachedFetch, prefetch } from "@/lib/swr";
 import LangToggle from "@/components/LangToggle";
 import AuthPanel from "@/components/AuthPanel";
 import BottomNav from "@/components/BottomNav";
@@ -10,20 +11,21 @@ import RewardStampCards from "@/components/RewardStampCards";
 
 export default function Home() {
   const { t, lang } = useI18n();
-  const { participantId, ready, tick } = useAuth();
-  const [campaign, setCampaign] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { participantId } = useAuth();
+  const { data: campData } = useCachedFetch<any>("/api/campaign");
+  const campaign = campData?.campaign;
 
+  // Warm the other tabs so switching is instant (no loading on first tap).
   useEffect(() => {
-    if (!ready) return;
-    (async () => {
-      const c = await fetch("/api/campaign", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
-      if (c) setCampaign(c.campaign);
-      setLoading(false);
-    })();
-  }, [ready, tick]);
+    prefetch("/api/events");
+    if (participantId) {
+      prefetch(`/api/rewards?participantId=${participantId}`);
+      prefetch(`/api/progress?participantId=${participantId}`);
+      prefetch(`/api/coupons?participantId=${participantId}`);
+    }
+  }, [participantId]);
 
-  if (loading) return <main className="p-6">{t("loading")}</main>;
+  if (campData === undefined) return <main className="p-6"><div className="skeleton h-40 rounded-3xl" /></main>;
   if (!campaign) return <main className="p-6">{t("no_campaign")}</main>;
 
   return (

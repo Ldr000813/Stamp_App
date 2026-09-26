@@ -1,34 +1,25 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useCachedFetch } from "@/lib/swr";
 
 // Renders every reward as the original stamp-card UI (grid of cells).
 // Cells filled = stamps earned AFTER that reward's created_at.
 export default function RewardStampCards({ participantId, tick = 0 }: { participantId: string; tick?: number }) {
   const { t, lang } = useI18n();
-  const [rewards, setRewards] = useState<any[] | null>(null);
-  const [stamps, setStamps] = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
   const locale = lang === "ja" ? "ja-JP" : "en-US";
 
-  useEffect(() => {
-    if (!participantId) return;
-    (async () => {
-      // Fetch in parallel to cut the loading wait.
-      const [rw, pr] = await Promise.all([
-        fetch(`/api/rewards?participantId=${participantId}`, { cache: "no-store" })
-          .then((r) => r.json()).catch(() => ({ rewards: [] })),
-        fetch(`/api/progress?participantId=${participantId}`, { cache: "no-store" })
-          .then((r) => r.json()).catch(() => ({ stamps: [] })),
-      ]);
-      const list: any[] = [...(rw.rewards || [])].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      setStamps(pr.stamps || []);
-      setRewards(list);
-    })();
-  }, [participantId, tick]);
+  const { data: rwData } = useCachedFetch<any>(participantId ? `/api/rewards?participantId=${participantId}` : null);
+  const { data: prData } = useCachedFetch<any>(participantId ? `/api/progress?participantId=${participantId}` : null);
 
-  if (rewards === null) {
+  const stamps: any[] = prData?.stamps || [];
+  const rewards: any[] | null = rwData?.rewards
+    ? [...rwData.rewards].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    : null;
+
+  // Show the skeleton only on the very first load (nothing cached yet).
+  if (rewards === null || prData === undefined) {
     return (
       <div className="space-y-4">
         <div className="skeleton h-16 rounded-2xl" />

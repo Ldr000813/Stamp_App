@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { useCachedFetch } from "@/lib/swr";
 import LangToggle from "@/components/LangToggle";
 import BottomNav from "@/components/BottomNav";
 
@@ -12,17 +12,10 @@ const fmtTime = (iso: string) => { const d = new Date(iso); return `${pad(d.getH
 
 export default function Events() {
   const { t, lang } = useI18n();
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data } = useCachedFetch<any>("/api/events");
+  const events: any[] = data?.events || [];
+  const loading = data === undefined;
   const locale = lang === "ja" ? "ja-JP" : "en-US";
-
-  useEffect(() => {
-    (async () => {
-      const r = await fetch("/api/events", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ events: [] }));
-      setEvents(r.events || []);
-      setLoading(false);
-    })();
-  }, []);
 
   const groups: Record<string, any[]> = {};
   for (const e of events) (groups[keyOf(new Date(e.starts_at))] ||= []).push(e);
