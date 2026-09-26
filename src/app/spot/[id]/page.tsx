@@ -45,7 +45,7 @@ export default function SpotDetail({ params }: { params: { id: string } }) {
       <main className="mx-auto max-w-md px-4 pb-28">
         {spot.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={spot.image_url} alt={name} className="w-full h-56 object-cover rounded-b-2xl" />
+          <img src={spot.image_url} alt={name} decoding="async" className="w-full h-56 object-cover rounded-b-2xl" />
         ) : (
           <div className="w-full h-56 rounded-b-2xl bg-[#E7E1D4] flex items-center justify-center text-5xl text-[#B7AC90]">📷</div>
         )}

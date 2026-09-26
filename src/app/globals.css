@@ -2,5 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { --cream:#FBF7F0; --yellow:#F6C64B; --teal:#33A6A0; --ink:#4b4640; }
-body { background: var(--cream); color: var(--ink); }
+:root { --cream:#FBF7F0; --yellow:#F6C64B; --teal:#33A6A0; --ink:#4b4640; --seal:#C8483A; }
+
+html, body { height: 100%; }
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: "Zen Maru Gothic", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* iOS: prevent auto-zoom on focus by keeping inputs >= 16px */
+input, textarea, select { font-size: 16px; }
+
+/* Safe-area helper for the fixed bottom nav (iPhone home bar) */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* 朱印（しゅいん）スタンプ — collected stamp look */
+.seal {
+  background: radial-gradient(circle at 50% 40%, #d5573f 0%, var(--seal) 70%);
+  color: #fff;
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.9),
+    inset 0 0 0 5px rgba(255,255,255,.22),
+    0 2px 6px rgba(150,50,40,.25);
+}
+@keyframes stampIn {
+  0%   { transform: scale(1.7); opacity: 0; }
+  55%  { transform: scale(.9);  opacity: 1; }
+  80%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.animate-stamp { animation: stampIn .42s cubic-bezier(.2,1.4,.4,1) both; }
+
+/* Skeleton shimmer for loading states */
+@keyframes shimmer { 100% { background-position: -200% 0; } }
+.skeleton {
+  background: linear-gradient(90deg, #ece6da 25%, #f5f0e6 37%, #ece6da 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}

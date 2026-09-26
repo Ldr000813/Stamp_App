@@ -47,7 +47,7 @@ export default function Spots() {
                 <div className="relative w-28 h-28 rounded-full overflow-hidden bg-[#E7E1D4] shadow-sm">
                   {s.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={s.image_url} alt="" className="w-full h-full object-cover" />
+                    <img src={s.image_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-3xl text-[#B7AC90]">📷</div>
                   )}

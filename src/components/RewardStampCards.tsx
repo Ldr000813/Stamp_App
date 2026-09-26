@@ -14,18 +14,30 @@ export default function RewardStampCards({ participantId, tick = 0 }: { particip
   useEffect(() => {
     if (!participantId) return;
     (async () => {
-      const rw = await fetch(`/api/rewards?participantId=${participantId}`, { cache: "no-store" })
-        .then((r) => r.json()).catch(() => ({ rewards: [] }));
+      // Fetch in parallel to cut the loading wait.
+      const [rw, pr] = await Promise.all([
+        fetch(`/api/rewards?participantId=${participantId}`, { cache: "no-store" })
+          .then((r) => r.json()).catch(() => ({ rewards: [] })),
+        fetch(`/api/progress?participantId=${participantId}`, { cache: "no-store" })
+          .then((r) => r.json()).catch(() => ({ stamps: [] })),
+      ]);
       const list: any[] = [...(rw.rewards || [])].sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const pr = await fetch(`/api/progress?participantId=${participantId}`, { cache: "no-store" })
-        .then((r) => r.json()).catch(() => ({ stamps: [] }));
       setStamps(pr.stamps || []);
       setRewards(list);
     })();
   }, [participantId, tick]);
 
-  if (rewards === null) return <p className="text-center text-gray-400 py-6">…</p>;
+  if (rewards === null) {
+    return (
+      <div className="space-y-4">
+        <div className="skeleton h-16 rounded-2xl" />
+        <div className="grid grid-cols-5 gap-2">
+          {Array.from({ length: 10 }).map((_, i) => <div key={i} className="skeleton aspect-square rounded-full" />)}
+        </div>
+      </div>
+    );
+  }
   if (rewards.length === 0) {
     return (
       <div className="text-center text-gray-400 py-10">
@@ -72,14 +84,21 @@ export default function RewardStampCards({ participantId, tick = 0 }: { particip
                 {Array.from({ length: cellCount }, (_, i) => {
                   const s = relevant[i];
                   const filled = !!s;
+                  const tilt = ((i % 3) - 1) * 5; // -5 / 0 / +5 deg — hand-stamped feel
                   return (
                     <button
                       key={i}
                       onClick={() => filled && setSelected(s)}
                       disabled={!filled}
-                      className={`aspect-square rounded-full flex items-center justify-center text-lg font-bold transition ${filled ? "bg-[#F6C64B] text-white active:scale-95" : "bg-white border-2 border-dashed border-[#E6D8B0] text-[#E0CFA0]"}`}
+                      className="aspect-square relative"
+                      style={filled ? { transform: `rotate(${tilt}deg)` } : undefined}
+                      aria-label={filled ? (lang === "ja" ? "獲得済みスタンプ" : "collected stamp") : undefined}
                     >
-                      {filled ? "✓" : i + 1}
+                      {filled ? (
+                        <span className="seal animate-stamp absolute inset-0 rounded-full flex items-center justify-center text-lg font-extrabold active:scale-95">✓</span>
+                      ) : (
+                        <span className="absolute inset-0 rounded-full bg-white border-2 border-dashed border-[#E6D8B0] text-[#E0CFA0] flex items-center justify-center text-lg font-bold">{i + 1}</span>
+                      )}
                     </button>
                   );
                 })}

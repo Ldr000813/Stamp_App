@@ -31,9 +31,9 @@ export default function Home() {
       <main className="mx-auto max-w-md px-4 pt-4 pb-28">
         <div className="flex justify-end mb-2"><LangToggle /></div>
 
-        <div className="rounded-3xl overflow-hidden mb-4 bg-gradient-to-br from-[#FCE8B2] via-[#F7DCA6] to-[#BFE8DF] p-7 text-center shadow-sm">
-          <div className="text-3xl mb-2">🎪 🎈 🎸</div>
-          <h1 className="text-2xl font-extrabold text-[#4b4640] leading-tight">
+        <div className="relative rounded-3xl overflow-hidden mb-4 bg-gradient-to-br from-[#FCE8B2] via-[#F7DCA6] to-[#BFE8DF] px-6 py-8 text-center shadow-sm">
+          <p className="text-[11px] tracking-[0.3em] text-[#C8483A] font-bold mb-2">KYOTO STAMP RALLY</p>
+          <h1 className="text-2xl font-bold text-[#4b4640] leading-snug">
             {lang === "ja" ? campaign.name_ja : campaign.name_en}
           </h1>
         </div>

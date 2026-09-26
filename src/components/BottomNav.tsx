@@ -22,7 +22,7 @@ export default function BottomNav() {
     { href: "/notes", icon: "alert", label: t("nav_notes") },
   ];
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#F6C64B] border-t border-[#e6b53c]">
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#F6C64B] border-t border-[#e6b53c] pb-safe">
       <div className="mx-auto max-w-md grid grid-cols-4">
         {items.map((it) => {
           const active = it.href === "/" ? path === "/" : path.startsWith(it.href);

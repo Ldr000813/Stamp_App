@@ -1,0 +1,15 @@
+{
+  "name": "京都まちめぐりスタンプラリー",
+  "short_name": "スタンプラリー",
+  "description": "京都に暮らす人と訪れる人のための、まちめぐりスタンプラリー。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF7F0",
+  "theme_color": "#F6C64B",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
