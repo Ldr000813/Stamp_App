@@ -56,14 +56,17 @@ export default function Events() {
                   const desc = lang === "ja" ? e.description_ja : e.description_en;
                   const venue = e.spot ? (lang === "ja" ? e.spot.name_ja : e.spot.name_en) : null;
                   return (
-                    <li key={e.id} className="rounded-2xl bg-white border border-[#EDE6D6] overflow-hidden shadow-sm">
+                    <li key={e.id} className={`rounded-2xl bg-white border border-[#EDE6D6] overflow-hidden shadow-sm ${e.ended ? "opacity-60" : ""}`}>
                       {e.image_url && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={e.image_url} alt="" className="w-full h-36 object-cover" />
+                        <img src={e.image_url} alt="" className={`w-full h-36 object-cover ${e.ended ? "grayscale" : ""}`} />
                       )}
                       <div className="p-3">
-                        <div className="text-[#33A6A0] font-bold text-sm">
-                          🕒 {fmtTime(e.starts_at)}{e.ends_at ? `–${fmtTime(e.ends_at)}` : ""}
+                        <div className="flex items-center gap-2">
+                          <div className="text-[#33A6A0] font-bold text-sm">
+                            🕒 {fmtTime(e.starts_at)}{e.ends_at ? `–${fmtTime(e.ends_at)}` : ""}
+                          </div>
+                          {e.ended && <span className="text-[11px] bg-gray-200 text-gray-500 rounded-full px-2 py-0.5 font-bold">{lang === "ja" ? "終了" : "Ended"}</span>}
                         </div>
                         <div className="font-bold text-[#4b4640] mt-0.5">{title}</div>
                         {venue && (

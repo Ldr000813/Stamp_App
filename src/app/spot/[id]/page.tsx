@@ -73,8 +73,11 @@ export default function SpotDetail({ params }: { params: { id: string } }) {
                   ? `${d.getMonth() + 1}月${d.getDate()}日(${wd})`
                   : d.toLocaleDateString(locale, { month: "short", day: "numeric", weekday: "short" });
                 return (
-                  <li key={ev.id} className="rounded-xl border border-[#E6E0D2] bg-white p-3">
-                    <div className="text-xs font-bold text-amber-700">{day} {time}</div>
+                  <li key={ev.id} className={`rounded-xl border border-[#E6E0D2] bg-white p-3 ${ev.ended ? "opacity-60" : ""}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs font-bold text-amber-700">{day} {time}</div>
+                      {ev.ended && <span className="text-[10px] bg-gray-200 text-gray-500 rounded-full px-1.5 py-0.5 font-bold">{lang === "ja" ? "終了" : "Ended"}</span>}
+                    </div>
                     <div className="font-bold text-[#4b4640] text-sm mt-0.5">{lang === "ja" ? ev.title_ja : ev.title_en}</div>
                     {(lang === "ja" ? ev.description_ja : ev.description_en) && (
                       <div className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{lang === "ja" ? ev.description_ja : ev.description_en}</div>
