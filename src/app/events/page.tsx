@@ -56,7 +56,7 @@ export default function Events() {
                   const desc = lang === "ja" ? e.description_ja : e.description_en;
                   const venue = e.spot ? (lang === "ja" ? e.spot.name_ja : e.spot.name_en) : null;
                   return (
-                    <li key={e.id} className={`rounded-2xl bg-white border border-[#EDE6D6] overflow-hidden shadow-sm ${e.ended ? "opacity-60" : ""}`}>
+                    <li key={e.id} aria-disabled={e.ended || undefined} className={`rounded-2xl bg-white border border-[#EDE6D6] overflow-hidden shadow-sm ${e.ended ? "opacity-60 pointer-events-none select-none" : ""}`}>
                       {e.image_url && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={e.image_url} alt="" className={`w-full h-36 object-cover ${e.ended ? "grayscale" : ""}`} />
