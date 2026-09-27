@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const fromIso = new Date(now - 3 * 3600 * 1000).toISOString(); // keep events that started in the last few hours
     const { data } = await db
       .from("events")
-      .select("*, spot:spots(id,name_ja,name_en,map_url)")
+      .select("*, spot:spots(id,name_ja,name_en,map_url,place_url,lat,lng)")
       .eq("active", true)
       .eq("spot_id", spotId)
       .gte("starts_at", fromIso)
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const to = new Date(now + 7 * 24 * 3600 * 1000).toISOString();
   const { data } = await db
     .from("events")
-    .select("*, spot:spots(id,name_ja,name_en,lat,lng,image_url,map_url)")
+    .select("*, spot:spots(id,name_ja,name_en,lat,lng,image_url,map_url,place_url,address_ja,address_en)")
     .eq("active", true)
     .gte("starts_at", from)
     .lte("starts_at", to)

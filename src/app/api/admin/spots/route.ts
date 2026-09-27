@@ -5,17 +5,35 @@ import { extractLatLng } from "@/lib/mapurl";
 
 export const dynamic = "force-dynamic";
 
-// Follow the admin's Google Maps link and pull out the pin coordinates, so the
-// app can build a universally-openable directions URL (some share links fail to
-// open directly in the Google Maps app — "サポートされていないリンク").
-async function resolveCoords(mapUrl: string): Promise<{ lat: number; lng: number } | null> {
+// Resolve the admin's Google Maps *share link* (e.g. maps.app.goo.gl/xxx) into the
+// fully-expanded place URL. That expanded URL keeps the place identity, so opening
+// it shows the exact building profile (no drift to random coordinates) and never
+// triggers the "サポートされていないリンク" error the short links sometimes cause.
+// We also grab coordinates (for the Leaflet map pins) as a bonus.
+async function resolvePlace(link: string): Promise<{ url: string | null; lat: number | null; lng: number | null }> {
   try {
-    const res = await fetch(mapUrl, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0" } });
-    const finalUrl = res.url || "";
+    const res = await fetch(link, {
+      redirect: "follow",
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36" },
+    });
+    let finalUrl = res.url || "";
+    // A consent interstitial hides the real destination in ?continue=
+    if (finalUrl.includes("consent.google")) {
+      try { const c = new URL(finalUrl).searchParams.get("continue"); if (c) finalUrl = decodeURIComponent(c); } catch { /* ignore */ }
+    }
     const body = await res.text().catch(() => "");
-    return extractLatLng(finalUrl + " " + body);
+    const coord = extractLatLng(finalUrl + " " + body);
+
+    let placeUrl: string | null = null;
+    if (/\/maps\/place\//.test(finalUrl)) placeUrl = finalUrl;
+    if (!placeUrl) {
+      const m = body.match(/https:\/\/www\.google\.com\/maps\/place\/[^"'\\<> )]+/);
+      if (m) placeUrl = m[0].replace(/\\u003d/g, "=").replace(/\\u0026/g, "&");
+    }
+    if (!placeUrl && /google\.[^/]+\/maps|maps\.google/.test(finalUrl)) placeUrl = finalUrl;
+    return { url: placeUrl, lat: coord?.lat ?? null, lng: coord?.lng ?? null };
   } catch {
-    return null;
+    return { url: null, lat: null, lng: null };
   }
 }
 
@@ -62,12 +80,14 @@ export async function POST(req: NextRequest) {
     event_start: b.event_start || null,
     event_end: b.event_end || null,
   };
-  // Resolve the pasted map link to coordinates so directions always open.
+  // Resolve the pasted share link to the openable place-profile URL (+ coords).
+  const rowAny = row as any;
   if (row.map_url) {
-    const c = await resolveCoords(row.map_url);
-    if (c) { row.lat = c.lat; row.lng = c.lng; }
+    const r = await resolvePlace(row.map_url);
+    rowAny.place_url = r.url;
+    if (r.lat != null) { row.lat = r.lat; row.lng = r.lng; }
   }
-  const { data: inserted, error } = await db.from("spots").insert(row).select("id").single();
+  const { data: inserted, error } = await db.from("spots").insert(rowAny).select("id").single();
   if (error || !inserted) return NextResponse.json({ error: error?.message || "insert_failed" }, { status: 500 });
   return NextResponse.json({ ok: true, id: inserted.id });
 }
@@ -94,10 +114,11 @@ export async function PATCH(req: NextRequest) {
   if (update.owner_email) update.owner_email = String(update.owner_email).trim().toLowerCase();
   if ("lat" in update) update.lat = update.lat == null ? null : Number(update.lat);
   if ("lng" in update) update.lng = update.lng == null ? null : Number(update.lng);
-  // Re-resolve coordinates whenever the map link is set/changed.
+  // Re-resolve the place URL + coordinates whenever the map link is set/changed.
   if ("map_url" in update && update.map_url) {
-    const c = await resolveCoords(update.map_url);
-    if (c) { update.lat = c.lat; update.lng = c.lng; }
+    const r = await resolvePlace(update.map_url);
+    update.place_url = r.url;
+    if (r.lat != null) { update.lat = r.lat; update.lng = r.lng; }
   }
   const db = supabaseAdmin();
   const { error } = await db.from("spots").update(update).eq("id", id);
