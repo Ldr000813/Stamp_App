@@ -80,14 +80,12 @@ export async function POST(req: NextRequest) {
     event_start: b.event_start || null,
     event_end: b.event_end || null,
   };
-  // Resolve the pasted share link to the openable place-profile URL (+ coords).
-  const rowAny = row as any;
+  // Resolve the pasted share link to coordinates (used for the map pins).
   if (row.map_url) {
     const r = await resolvePlace(row.map_url);
-    rowAny.place_url = r.url;
     if (r.lat != null) { row.lat = r.lat; row.lng = r.lng; }
   }
-  const { data: inserted, error } = await db.from("spots").insert(rowAny).select("id").single();
+  const { data: inserted, error } = await db.from("spots").insert(row).select("id").single();
   if (error || !inserted) return NextResponse.json({ error: error?.message || "insert_failed" }, { status: 500 });
   return NextResponse.json({ ok: true, id: inserted.id });
 }
@@ -114,10 +112,9 @@ export async function PATCH(req: NextRequest) {
   if (update.owner_email) update.owner_email = String(update.owner_email).trim().toLowerCase();
   if ("lat" in update) update.lat = update.lat == null ? null : Number(update.lat);
   if ("lng" in update) update.lng = update.lng == null ? null : Number(update.lng);
-  // Re-resolve the place URL + coordinates whenever the map link is set/changed.
+  // Re-resolve coordinates whenever the map link is set/changed (for map pins).
   if ("map_url" in update && update.map_url) {
     const r = await resolvePlace(update.map_url);
-    update.place_url = r.url;
     if (r.lat != null) { update.lat = r.lat; update.lng = r.lng; }
   }
   const db = supabaseAdmin();

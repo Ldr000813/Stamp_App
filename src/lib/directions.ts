@@ -9,15 +9,13 @@
 // maps.app.goo.gl share links trigger when handed straight to the Maps app.
 export function directionsUrl(spot: any): string {
   if (!spot) return "#";
-  // 1. Resolved place-profile URL — opens the exact building page, never drifts.
-  if (spot.place_url) return spot.place_url;
-  // 2. Coordinates (map pin) as a directions URL.
+  // Route through /api/go, which resolves the admin's share link on the fly to the
+  // exact place-profile URL (opens reliably, shows the building, never drifts).
+  if (spot.id) return `/api/go?spot=${spot.id}`;
+  // Fallbacks when we don't have an id (shouldn't normally happen).
   if (spot.lat != null && spot.lng != null) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+    return `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
   }
-  // 3. Address, then the raw link, then a name search.
-  const addr = spot.address_ja || spot.address_en;
-  if (addr) return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;
   if (spot.map_url) return spot.map_url;
   const name = spot.name_ja || spot.name_en;
   if (name) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`;
