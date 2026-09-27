@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { directionsUrl } from "@/lib/directions";
 import BottomNav from "@/components/BottomNav";
 
 export default function SpotDetail({ params }: { params: { id: string } }) {
@@ -86,11 +87,7 @@ export default function SpotDetail({ params }: { params: { id: string } }) {
         )}
         {(spot.map_url || hasCoords || address) && (
           <a
-            href={spot.map_url
-              ? spot.map_url
-              : hasCoords
-                ? `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`
-                : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`}
+            href={directionsUrl(spot)}
             target="_blank" rel="noreferrer"
             className="mt-5 block text-center rounded-full bg-[#F6C64B] text-[#4b4640] font-bold py-3"
           >

@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseServer";
+import { extractLatLng } from "@/lib/mapurl";
 
 export const dynamic = "force-dynamic";
+
+// Follow the admin's Google Maps link and pull out the pin coordinates, so the
+// app can build a universally-openable directions URL (some share links fail to
+// open directly in the Google Maps app — "サポートされていないリンク").
+async function resolveCoords(mapUrl: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const res = await fetch(mapUrl, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0" } });
+    const finalUrl = res.url || "";
+    const body = await res.text().catch(() => "");
+    return extractLatLng(finalUrl + " " + body);
+  } catch {
+    return null;
+  }
+}
 
 async function requireAdmin(req: NextRequest): Promise<string | null> {
   const token = (req.headers.get("authorization") || "").replace("Bearer ", "");
@@ -47,6 +62,11 @@ export async function POST(req: NextRequest) {
     event_start: b.event_start || null,
     event_end: b.event_end || null,
   };
+  // Resolve the pasted map link to coordinates so directions always open.
+  if (row.map_url) {
+    const c = await resolveCoords(row.map_url);
+    if (c) { row.lat = c.lat; row.lng = c.lng; }
+  }
   const { data: inserted, error } = await db.from("spots").insert(row).select("id").single();
   if (error || !inserted) return NextResponse.json({ error: error?.message || "insert_failed" }, { status: 500 });
   return NextResponse.json({ ok: true, id: inserted.id });
@@ -74,6 +94,11 @@ export async function PATCH(req: NextRequest) {
   if (update.owner_email) update.owner_email = String(update.owner_email).trim().toLowerCase();
   if ("lat" in update) update.lat = update.lat == null ? null : Number(update.lat);
   if ("lng" in update) update.lng = update.lng == null ? null : Number(update.lng);
+  // Re-resolve coordinates whenever the map link is set/changed.
+  if ("map_url" in update && update.map_url) {
+    const c = await resolveCoords(update.map_url);
+    if (c) { update.lat = c.lat; update.lng = c.lng; }
+  }
   const db = supabaseAdmin();
   const { error } = await db.from("spots").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

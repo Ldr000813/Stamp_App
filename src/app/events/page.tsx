@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { useCachedFetch } from "@/lib/swr";
+import { directionsUrl } from "@/lib/directions";
 import LangToggle from "@/components/LangToggle";
 import BottomNav from "@/components/BottomNav";
 
@@ -71,8 +72,8 @@ export default function Events() {
                           </div>
                         )}
                         {desc && <p className="text-sm text-gray-600 mt-1 line-clamp-3 whitespace-pre-wrap">{desc}</p>}
-                        {(e.spot?.map_url || (e.spot?.lat && e.spot?.lng)) && (
-                          <a href={e.spot.map_url ? e.spot.map_url : `https://www.google.com/maps/dir/?api=1&destination=${e.spot.lat},${e.spot.lng}`} target="_blank" rel="noreferrer" className="inline-block mt-2 text-xs text-[#33A6A0] underline">🧭 {t("directions")}</a>
+                        {(e.spot?.map_url || (e.spot?.lat && e.spot?.lng) || e.spot?.address_ja) && (
+                          <a href={directionsUrl(e.spot)} target="_blank" rel="noreferrer" className="inline-block mt-2 text-xs text-[#33A6A0] underline">🧭 {t("directions")}</a>
                         )}
                       </div>
                     </li>

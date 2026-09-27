@@ -198,7 +198,7 @@ export default function Admin() {
               <Field label="住所（日本語）"><TextInput value={form.address_ja} onChange={(e) => set("address_ja", e.target.value)} /></Field>
               <Field label="Address (English)"><TextInput value={form.address_en} onChange={(e) => set("address_en", e.target.value)} /></Field>
               <Field label="画像" className="sm:col-span-2"><ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={session.access_token} /></Field>
-              <Field label="場所（Googleマップのリンク）" className="sm:col-span-2">
+              <Field label="場所（Googleマップの共有リンク）" hint="共有リンクを貼るだけでOK。保存時に「どの端末でも必ず開ける」形式へ自動変換します。" className="sm:col-span-2">
                 <TextInput placeholder="https://maps.app.goo.gl/..." value={form.map_url} onChange={(e) => set("map_url", e.target.value)} />
               </Field>
               <Field label="店舗オーナーのメールアドレス（任意）" hint="このメールでログインした人だけが、この店舗のイベントを編集できます。" className="sm:col-span-2">
