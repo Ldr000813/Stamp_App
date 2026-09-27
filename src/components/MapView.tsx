@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
@@ -13,10 +13,23 @@ const icon = L.icon({
   iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
 });
 
+// Auto-fit the map to show every pin (and the user's location if available).
+function FitBounds({ pts, me }: { pts: any[]; me: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    const coords: [number, number][] = pts.map((p) => [p.lat, p.lng]);
+    if (me) coords.push(me);
+    if (coords.length === 0) return;
+    if (coords.length === 1) { map.setView(coords[0], 16); return; }
+    map.fitBounds(L.latLngBounds(coords), { padding: [50, 50], maxZoom: 16 });
+  }, [map, pts, me]);
+  return null;
+}
+
 export default function MapView({ spots }: { spots: any[] }) {
   const { t, lang } = useI18n();
   const [me, setMe] = useState<[number, number] | null>(null);
-  const pts = (spots || []).filter((s) => s.lat && s.lng);
+  const pts = (spots || []).filter((s) => s.lat != null && s.lng != null);
   const center: [number, number] = pts.length ? [pts[0].lat, pts[0].lng] : [35.0116, 135.7681]; // Kyoto
 
   useEffect(() => {
@@ -34,6 +47,7 @@ export default function MapView({ spots }: { spots: any[] }) {
         attribution="&copy; OpenStreetMap contributors"
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <FitBounds pts={pts} me={me} />
       {me && (
         <Marker position={me} icon={icon}>
           <Popup>{t("current_location")}</Popup>

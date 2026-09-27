@@ -1,41 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { extractLatLng } from "@/lib/mapurl";
+import { resolveCoords } from "@/lib/resolveCoords";
 
 export const dynamic = "force-dynamic";
-
-// Resolve the admin's Google Maps *share link* (e.g. maps.app.goo.gl/xxx) into the
-// fully-expanded place URL. That expanded URL keeps the place identity, so opening
-// it shows the exact building profile (no drift to random coordinates) and never
-// triggers the "サポートされていないリンク" error the short links sometimes cause.
-// We also grab coordinates (for the Leaflet map pins) as a bonus.
-async function resolvePlace(link: string): Promise<{ url: string | null; lat: number | null; lng: number | null }> {
-  try {
-    const res = await fetch(link, {
-      redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36" },
-    });
-    let finalUrl = res.url || "";
-    // A consent interstitial hides the real destination in ?continue=
-    if (finalUrl.includes("consent.google")) {
-      try { const c = new URL(finalUrl).searchParams.get("continue"); if (c) finalUrl = decodeURIComponent(c); } catch { /* ignore */ }
-    }
-    const body = await res.text().catch(() => "");
-    const coord = extractLatLng(finalUrl + " " + body);
-
-    let placeUrl: string | null = null;
-    if (/\/maps\/place\//.test(finalUrl)) placeUrl = finalUrl;
-    if (!placeUrl) {
-      const m = body.match(/https:\/\/www\.google\.com\/maps\/place\/[^"'\\<> )]+/);
-      if (m) placeUrl = m[0].replace(/\\u003d/g, "=").replace(/\\u0026/g, "&");
-    }
-    if (!placeUrl && /google\.[^/]+\/maps|maps\.google/.test(finalUrl)) placeUrl = finalUrl;
-    return { url: placeUrl, lat: coord?.lat ?? null, lng: coord?.lng ?? null };
-  } catch {
-    return { url: null, lat: null, lng: null };
-  }
-}
 
 async function requireAdmin(req: NextRequest): Promise<string | null> {
   const token = (req.headers.get("authorization") || "").replace("Bearer ", "");
@@ -80,10 +48,10 @@ export async function POST(req: NextRequest) {
     event_start: b.event_start || null,
     event_end: b.event_end || null,
   };
-  // Resolve the pasted share link to coordinates (used for the map pins).
+  // Resolve the pasted share link to the exact pin coordinates (for the map).
   if (row.map_url) {
-    const r = await resolvePlace(row.map_url);
-    if (r.lat != null) { row.lat = r.lat; row.lng = r.lng; }
+    const c = await resolveCoords(row.map_url);
+    if (c) { row.lat = c.lat; row.lng = c.lng; }
   }
   const { data: inserted, error } = await db.from("spots").insert(row).select("id").single();
   if (error || !inserted) return NextResponse.json({ error: error?.message || "insert_failed" }, { status: 500 });
@@ -114,8 +82,8 @@ export async function PATCH(req: NextRequest) {
   if ("lng" in update) update.lng = update.lng == null ? null : Number(update.lng);
   // Re-resolve coordinates whenever the map link is set/changed (for map pins).
   if ("map_url" in update && update.map_url) {
-    const r = await resolvePlace(update.map_url);
-    if (r.lat != null) { update.lat = r.lat; update.lng = r.lng; }
+    const c = await resolveCoords(update.map_url);
+    if (c) { update.lat = c.lat; update.lng = c.lng; }
   }
   const db = supabaseAdmin();
   const { error } = await db.from("spots").update(update).eq("id", id);
