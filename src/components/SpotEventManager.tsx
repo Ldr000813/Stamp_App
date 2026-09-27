@@ -8,7 +8,7 @@ const emptyForm = {
   image_url: "", starts_at: "", ends_at: "",
 };
 
-export default function SpotEventManager({ token, spots, apiBase = "/api/admin/events" }: { token: string; spots: any[]; apiBase?: string }) {
+export default function SpotEventManager({ token, spots, apiBase = "/api/admin/events", onUploadingChange }: { token: string; spots: any[]; apiBase?: string; onUploadingChange?: (b: boolean) => void }) {
   const [events, setEvents] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [formSpot, setFormSpot] = useState<string | null>(null); // spot whose add/edit form is open
@@ -84,7 +84,7 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
           </div>
           <textarea className="f-input col-span-2" placeholder="説明（日本語）" value={form.description_ja} onChange={(e) => set("description_ja", e.target.value)} />
           <textarea className="f-input col-span-2" placeholder="Description (English)" value={form.description_en} onChange={(e) => set("description_en", e.target.value)} />
-          <ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={token} />
+          <ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={token} onUploadingChange={onUploadingChange} />
         </div>
         <div className="flex gap-2">
           <button className="f-btn f-btn-primary">{editingId ? "更新" : "追加"}</button>

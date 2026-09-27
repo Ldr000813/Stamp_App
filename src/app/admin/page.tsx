@@ -33,6 +33,7 @@ export default function Admin() {
   const [confirmCode, setConfirmCode] = useState("");
   const [confirmInput, setConfirmInput] = useState("");
   const [qrModal, setQrModal] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -197,7 +198,7 @@ export default function Admin() {
               <Field label="Description (English)" className="sm:col-span-2"><TextArea value={form.description_en} onChange={(e) => set("description_en", e.target.value)} /></Field>
               <Field label="住所（日本語）"><TextInput value={form.address_ja} onChange={(e) => set("address_ja", e.target.value)} /></Field>
               <Field label="Address (English)"><TextInput value={form.address_en} onChange={(e) => set("address_en", e.target.value)} /></Field>
-              <Field label="画像" className="sm:col-span-2"><ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={session.access_token} /></Field>
+              <Field label="画像" className="sm:col-span-2"><ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={session.access_token} onUploadingChange={setUploading} /></Field>
               <Field label="場所（Googleマップの共有リンク）" hint="共有リンクを貼るだけでOK。保存時に「どの端末でも必ず開ける」形式へ自動変換します。" className="sm:col-span-2">
                 <TextInput placeholder="https://maps.app.goo.gl/..." value={form.map_url} onChange={(e) => set("map_url", e.target.value)} />
               </Field>
@@ -241,16 +242,26 @@ export default function Admin() {
           </div>
         </>
       ) : tab === "events" ? (
-        <SpotEventManager token={session.access_token} spots={spots} />
+        <SpotEventManager token={session.access_token} spots={spots} onUploadingChange={setUploading} />
       ) : (
         <>
-          <RewardManager token={session.access_token} />
-          <CouponManager token={session.access_token} />
+          <RewardManager token={session.access_token} onUploadingChange={setUploading} />
+          <CouponManager token={session.access_token} onUploadingChange={setUploading} />
         </>
       )}
 
         {msg && <p className="text-rose-600 mt-4 text-sm">{msg}</p>}
       </div>
+
+      {uploading && (
+        <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center" aria-live="assertive" aria-busy="true">
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-8 py-6 shadow-lg">
+            <span className="h-9 w-9 rounded-full border-[3px] border-emerald-500 border-t-transparent animate-spin" />
+            <p className="text-sm font-medium text-slate-700">画像をアップロード中…</p>
+            <p className="text-xs text-slate-400">完了までしばらくお待ちください</p>
+          </div>
+        </div>
+      )}
 
       {hardTarget && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">

@@ -2,15 +2,17 @@
 import { useState } from "react";
 
 export default function ImageUpload({
-  value, onChange, token,
-}: { value: string; onChange: (url: string) => void; token: string }) {
+  value, onChange, token, onUploadingChange,
+}: { value: string; onChange: (url: string) => void; token: string; onUploadingChange?: (b: boolean) => void }) {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
+
+  function setBusy(b: boolean) { setUploading(b); onUploadingChange?.(b); }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true); setMsg("");
+    setBusy(true); setMsg("");
     const fd = new FormData();
     fd.append("file", file);
     const r = await fetch("/api/admin/upload", {
@@ -18,7 +20,7 @@ export default function ImageUpload({
       headers: { Authorization: `Bearer ${token}` },
       body: fd,
     }).then((r) => r.json()).catch(() => null);
-    setUploading(false);
+    setBusy(false);
     if (r?.url) onChange(r.url);
     else setMsg("アップロードに失敗しました");
     e.target.value = "";

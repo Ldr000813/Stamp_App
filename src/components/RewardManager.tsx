@@ -4,7 +4,7 @@ import ImageUpload from "@/components/ImageUpload";
 
 const empty = { title_ja: "", title_en: "", body_ja: "", body_en: "", image_url: "", required_stamps: "5" };
 
-export default function RewardManager({ token }: { token: string }) {
+export default function RewardManager({ token, onUploadingChange }: { token: string; onUploadingChange?: (b: boolean) => void }) {
   const [rewards, setRewards] = useState<any[]>([]);
   const [form, setForm] = useState<any>({ ...empty });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -73,7 +73,7 @@ export default function RewardManager({ token }: { token: string }) {
             <textarea className="f-input col-span-2" placeholder="説明・受け取り方法（日本語）" value={form.body_ja} onChange={(e) => set("body_ja", e.target.value)} />
             <textarea className="f-input col-span-2" placeholder="Description / how to receive (English)" value={form.body_en} onChange={(e) => set("body_en", e.target.value)} />
             <div className="col-span-2"><label className="text-xs text-gray-500">画像（任意）</label>
-              <ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={token} /></div>
+              <ImageUpload value={form.image_url} onChange={(url) => set("image_url", url)} token={token} onUploadingChange={onUploadingChange} /></div>
           </div>
           <div className="flex gap-2">
             <button className="f-btn f-btn-primary">{editingId ? "更新" : "追加"}</button>
