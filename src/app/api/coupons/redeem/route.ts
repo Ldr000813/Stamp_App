@@ -3,20 +3,23 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
 
-// A user marks a coupon as used (slide-to-redeem). Idempotent.
+// Redeem a granted coupon (slide-to-use). Blocked if expired or already used.
 export async function POST(req: NextRequest) {
-  const { participantId, couponId } = await req.json().catch(() => ({}));
-  if (!participantId || !couponId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  const { participantId, grantId } = await req.json().catch(() => ({}));
+  if (!participantId || !grantId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const db = supabaseAdmin();
-  const { data: coupon } = await db.from("coupons").select("id, active").eq("id", couponId).maybeSingle();
-  if (!coupon || !coupon.active) return NextResponse.json({ error: "coupon_not_found" }, { status: 404 });
 
-  const { error } = await db.from("coupon_redemptions")
-    .insert({ coupon_id: couponId, participant_id: participantId });
-  const already = !!error && (error as any).code === "23505";
-  if (error && !already) return NextResponse.json({ error: "redeem_failed" }, { status: 500 });
+  const { data: grant } = await db.from("coupon_grants")
+    .select("id, participant_id, expires_at, redeemed_at").eq("id", grantId).maybeSingle();
+  if (!grant || grant.participant_id !== participantId)
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (grant.redeemed_at)
+    return NextResponse.json({ ok: true, already: true, redeemed_at: grant.redeemed_at });
+  if (Date.now() > new Date(grant.expires_at).getTime())
+    return NextResponse.json({ error: "expired" }, { status: 410 });
 
-  const { data: row } = await db.from("coupon_redemptions")
-    .select("redeemed_at").eq("coupon_id", couponId).eq("participant_id", participantId).maybeSingle();
-  return NextResponse.json({ ok: true, already, redeemed_at: row?.redeemed_at });
+  const redeemed_at = new Date().toISOString();
+  const { error } = await db.from("coupon_grants").update({ redeemed_at }).eq("id", grantId);
+  if (error) return NextResponse.json({ error: "redeem_failed" }, { status: 500 });
+  return NextResponse.json({ ok: true, redeemed_at });
 }

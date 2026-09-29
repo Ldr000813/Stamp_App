@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
   const campaign_id = await activeCampaignId(db);
   const { data, error } = await db.from("coupons").insert({
     campaign_id,
+    reward_id: b.reward_id || null,
     title_ja: b.title_ja, title_en: b.title_en || null,
     description_ja: b.description_ja || null, description_en: b.description_en || null,
     image_url: b.image_url || null,
@@ -37,7 +38,7 @@ export async function PATCH(req: NextRequest) {
   if (!isAdminEmail(await getAuthEmail(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const b = await req.json().catch(() => ({} as any));
   if (!b?.id) return NextResponse.json({ error: "bad_request" }, { status: 400 });
-  const allowed = ["title_ja","title_en","description_ja","description_en","image_url","active"];
+  const allowed = ["title_ja","title_en","description_ja","description_en","image_url","active","reward_id"];
   const update: any = {};
   for (const k of allowed) if (k in b) update[k] = b[k] === "" ? null : b[k];
   const db = supabaseAdmin();

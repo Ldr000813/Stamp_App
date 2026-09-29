@@ -12,19 +12,18 @@ export default function Rewards() {
   const { t, lang } = useI18n();
   const { participantId, ready } = useAuth();
   const { data: cpData } = useCachedFetch<any>(participantId ? `/api/coupons?participantId=${participantId}` : null);
-  const coupons: any[] = cpData?.coupons || [];
+  const grants: any[] = cpData?.grants || [];
   const [redeemedLocal, setRedeemedLocal] = useState<Record<string, string>>({});
-  const redeemed = { ...(cpData?.redeemed || {}), ...redeemedLocal };
 
-  async function redeemCoupon(id: string): Promise<boolean> {
+  async function redeemGrant(grantId: string): Promise<boolean> {
     try {
       const r = await fetch("/api/coupons/redeem", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ participantId, couponId: id }),
+        body: JSON.stringify({ participantId, grantId }),
       });
       if (!r.ok) return false;
       const j = await r.json();
-      setRedeemedLocal((m) => ({ ...m, [id]: j.redeemed_at || new Date().toISOString() }));
+      setRedeemedLocal((m) => ({ ...m, [grantId]: j.redeemed_at || new Date().toISOString() }));
       return true;
     } catch { return false; }
   }
@@ -41,13 +40,21 @@ export default function Rewards() {
 
         {ready && participantId && <RewardStampCards participantId={participantId} />}
 
-        {coupons.length > 0 && (
+        {grants.length > 0 && (
           <div className="mt-8">
-            <h3 className="text-base font-bold text-[#4b4640] mb-1">{lang === "ja" ? "クーポン" : "Coupons"}</h3>
+            <h3 className="text-base font-bold text-[#4b4640] mb-1">{lang === "ja" ? "獲得したクーポン" : "Your coupons"}</h3>
             <p className="text-xs text-gray-400 mb-3">{lang === "ja" ? "お店でスタッフの前でスライドして使用してください。" : "Slide in front of the staff to redeem."}</p>
             <div className="space-y-3">
-              {coupons.map((c) => (
-                <Coupon key={c.id} coupon={c} lang={lang as "ja" | "en"} redeemedAt={redeemed[c.id]} onRedeem={redeemCoupon} />
+              {grants.map((g) => (
+                <Coupon
+                  key={g.id}
+                  coupon={g.coupon}
+                  lang={lang as "ja" | "en"}
+                  redeemedAt={redeemedLocal[g.id] ?? g.redeemed_at}
+                  expiresAt={g.expires_at}
+                  expired={g.expired && !(redeemedLocal[g.id] ?? g.redeemed_at)}
+                  onRedeem={() => redeemGrant(g.id)}
+                />
               ))}
             </div>
           </div>

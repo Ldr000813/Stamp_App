@@ -3,22 +3,22 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
 
+// Returns the coupons GRANTED to this participant (earned by completing a stamp
+// card). Each grant has its own expiry and redeemed state.
 export async function GET(req: NextRequest) {
   const participantId = req.nextUrl.searchParams.get("participantId");
+  if (!participantId) return NextResponse.json({ grants: [] });
   const db = supabaseAdmin();
-  const { data: campaign } = await db.from("campaigns").select("id").eq("active", true)
-    .order("created_at", { ascending: false }).limit(1).maybeSingle();
-  if (!campaign) return NextResponse.json({ coupons: [], redeemed: [] });
 
-  const { data: coupons } = await db.from("coupons")
-    .select("*").eq("campaign_id", campaign.id).eq("active", true)
-    .order("created_at", { ascending: true });
+  const { data } = await db.from("coupon_grants")
+    .select("id, granted_at, expires_at, redeemed_at, coupon:coupons(id, title_ja, title_en, description_ja, description_en, image_url)")
+    .eq("participant_id", participantId)
+    .order("granted_at", { ascending: false });
 
-  let redeemed: Record<string, string> = {};
-  if (participantId) {
-    const { data: reds } = await db.from("coupon_redemptions")
-      .select("coupon_id, redeemed_at").eq("participant_id", participantId);
-    for (const r of reds || []) redeemed[r.coupon_id] = r.redeemed_at;
-  }
-  return NextResponse.json({ coupons: coupons || [], redeemed });
+  const now = Date.now();
+  const grants = (data || []).map((g: any) => ({
+    ...g,
+    expired: now > new Date(g.expires_at).getTime(),
+  }));
+  return NextResponse.json({ grants });
 }

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { rewardProgress } from "@/lib/rewards";
 
 export const dynamic = "force-dynamic";
 
+// Returns the participant's stamp cards, each with its CURRENT cycle progress
+// and the stamps collected in that cycle (for the grid). Recurring cards reset
+// each completion, so progress reflects the ongoing cycle.
 export async function GET(req: NextRequest) {
   const participantId = req.nextUrl.searchParams.get("participantId");
   const db = supabaseAdmin();
@@ -11,21 +13,36 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!campaign) return NextResponse.json({ rewards: [] });
 
-  const { data: rewards } = await db.from("rewards")
+  const { data: cards } = await db.from("rewards")
     .select("*").eq("campaign_id", campaign.id).eq("active", true)
-    .order("required_stamps", { ascending: true });
+    .order("created_at", { ascending: true });
 
-  // Fetch this participant's stamp timestamps once, then compute each reward's
-  // progress = number of stamps acquired at or after the reward's created_at.
-  let stampTimes: number[] = [];
-  if (participantId) {
-    const { data: stamps } = await db.from("stamps")
-      .select("acquired_at").eq("participant_id", participantId).eq("campaign_id", campaign.id);
-    stampTimes = (stamps || []).map((s: any) => new Date(s.acquired_at).getTime());
+  if (!participantId || !(cards || []).length) {
+    return NextResponse.json({ rewards: (cards || []).map((c: any) => ({ ...c, progress: 0, unlocked: false, stamps: [], completions: 0 })) });
   }
 
-  const out = (rewards || []).map((r: any) => ({
-    ...r, ...rewardProgress(stampTimes, r.created_at, r.required_stamps),
-  }));
+  // completions per card (= current cycle)
+  const { data: states } = await db.from("card_state")
+    .select("reward_id, completions").eq("participant_id", participantId);
+  const cycleOf: Record<string, number> = {};
+  for (const s of states || []) cycleOf[s.reward_id] = s.completions;
+
+  // all of this participant's stamps (we filter by card+cycle in JS)
+  const { data: stamps } = await db.from("stamps")
+    .select("reward_id, cycle, spot_name_ja, spot_name_en, spot_image_url, acquired_at")
+    .eq("participant_id", participantId)
+    .order("acquired_at", { ascending: true });
+
+  const out = (cards || []).map((c: any) => {
+    const cycle = cycleOf[c.id] ?? 0;
+    const mine = (stamps || []).filter((s: any) => s.reward_id === c.id && s.cycle === cycle);
+    return {
+      ...c,
+      completions: cycle,
+      progress: mine.length,
+      unlocked: mine.length >= c.required_stamps,
+      stamps: mine,
+    };
+  });
   return NextResponse.json({ rewards: out });
 }

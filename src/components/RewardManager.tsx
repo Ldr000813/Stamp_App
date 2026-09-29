@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import ImageUpload from "@/components/ImageUpload";
 
-const empty = { title_ja: "", title_en: "", body_ja: "", body_en: "", image_url: "", required_stamps: "5" };
+const empty = { title_ja: "", title_en: "", body_ja: "", body_en: "", image_url: "", required_stamps: "5", recurring: false };
 
 export default function RewardManager({ token, onUploadingChange }: { token: string; onUploadingChange?: (b: boolean) => void }) {
   const [rewards, setRewards] = useState<any[]>([]);
@@ -25,6 +25,7 @@ export default function RewardManager({ token, onUploadingChange }: { token: str
       title_ja: x.title_ja || "", title_en: x.title_en || "",
       body_ja: x.body_ja || "", body_en: x.body_en || "",
       image_url: x.image_url || "", required_stamps: String(x.required_stamps ?? 5),
+      recurring: !!x.recurring,
     });
     setShowForm(true); setMsg("");
   }
@@ -52,11 +53,11 @@ export default function RewardManager({ token, onUploadingChange }: { token: str
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-bold text-[#4b4640]">特典（クリア特典）</h3>
-        <button onClick={openAdd} className="f-btn f-btn-primary rounded-full">＋ 特典を追加</button>
+        <h3 className="font-bold text-[#4b4640]">スタンプカード（特典）</h3>
+        <button onClick={openAdd} className="f-btn f-btn-primary rounded-full">＋ カードを追加</button>
       </div>
       <p className="text-xs text-gray-500 mb-3">
-        特典ごとに「解放に必要なスタンプ数」を設定できます。カウントされるのは、<strong>その特典を作成した時刻より後に押されたスタンプ</strong>だけです。
+        カードごとに「必要スタンプ数」を設定。参加者はカードの「スキャン」でスポットQRを読むと、そのカードにスタンプが付きます。Maxで、そのカードに紐づくクーポンが<strong>2か月期限</strong>で付与されます。<strong>定期カード</strong>はコンプリートのたびにリセットして繰り返せます。
       </p>
 
       {showForm && (
@@ -66,10 +67,14 @@ export default function RewardManager({ token, onUploadingChange }: { token: str
             <input className="f-input" placeholder="特典名（日本語）例: 記念グッズ" value={form.title_ja} onChange={(e) => set("title_ja", e.target.value)} required />
             <input className="f-input" placeholder="Title (English)" value={form.title_en} onChange={(e) => set("title_en", e.target.value)} />
             <div className="col-span-2 flex items-center gap-2">
-              <label className="text-sm text-gray-600">解放に必要なスタンプ数</label>
+              <label className="text-sm text-gray-600">必要スタンプ数</label>
               <input type="number" min={1} className="f-input w-24" value={form.required_stamps} onChange={(e) => set("required_stamps", e.target.value)} />
               <span className="text-sm text-gray-500">個</span>
             </div>
+            <label className="col-span-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 cursor-pointer">
+              <input type="checkbox" className="w-4 h-4 accent-emerald-600" checked={!!form.recurring} onChange={(e) => setForm((f: any) => ({ ...f, recurring: e.target.checked }))} />
+              <span className="text-sm text-slate-700"><strong>定期カード</strong>にする（コンプリートのたびにリセット＆クーポン付与、繰り返し可）</span>
+            </label>
             <textarea className="f-input col-span-2" placeholder="説明・受け取り方法（日本語）" value={form.body_ja} onChange={(e) => set("body_ja", e.target.value)} />
             <textarea className="f-input col-span-2" placeholder="Description / how to receive (English)" value={form.body_en} onChange={(e) => set("body_en", e.target.value)} />
             <div className="col-span-2"><label className="text-xs text-gray-500">画像（任意）</label>
@@ -92,7 +97,8 @@ export default function RewardManager({ token, onUploadingChange }: { token: str
               <span className="flex items-center gap-2 min-w-0">
                 {!x.active && <span className="text-xs bg-gray-300 text-gray-700 rounded-full px-2 py-0.5">無効</span>}
                 <span className="truncate">🎁 {x.title_ja}</span>
-                <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 shrink-0">{x.required_stamps}個で解放</span>
+                <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 shrink-0">{x.required_stamps}個</span>
+                {x.recurring && <span className="text-xs bg-teal-100 text-teal-700 rounded-full px-2 py-0.5 shrink-0">定期</span>}
               </span>
               <div className="flex gap-2 shrink-0">
                 <button onClick={() => openEdit(x)} className="f-btn f-btn-sm f-btn-secondary">編集</button>

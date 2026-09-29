@@ -9,15 +9,18 @@ type C = {
 };
 
 export default function Coupon({
-  coupon, lang, redeemedAt, onRedeem,
+  coupon, lang, redeemedAt, onRedeem, expiresAt, expired,
 }: {
   coupon: C;
   lang: "ja" | "en";
   redeemedAt?: string | null;
   onRedeem: (id: string) => Promise<boolean>;
+  expiresAt?: string | null;
+  expired?: boolean;
 }) {
   const title = (lang === "ja" ? coupon.title_ja : coupon.title_en) || coupon.title_ja;
   const desc = lang === "ja" ? coupon.description_ja : coupon.description_en;
+  const locale = lang === "ja" ? "ja-JP" : "en-US";
 
   const trackRef = useRef<HTMLDivElement>(null);
   const KNOB = 52;
@@ -62,6 +65,7 @@ export default function Coupon({
   }
 
   const pct = maxRef.current ? Math.min(1, x / maxRef.current) : 0;
+  const locked = !!expired && !used;
 
   return (
     <div className={`relative select-none rounded-2xl bg-white shadow-[0_6px_20px_rgba(120,90,60,0.12)] overflow-hidden ${used ? "opacity-90" : ""}`}>
@@ -79,6 +83,12 @@ export default function Coupon({
               <p className="text-[11px] font-bold tracking-wider text-[#33A6A0]">COUPON</p>
               <p className="font-extrabold text-[#4b4640] leading-tight truncate">{title}</p>
               {desc && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 whitespace-pre-line">{desc}</p>}
+              {expiresAt && !used && (
+                <p className={`text-[11px] mt-1 ${locked ? "text-rose-500 font-bold" : "text-gray-400"}`}>
+                  {(lang === "ja" ? "有効期限: " : "Use by: ") + new Date(expiresAt).toLocaleDateString(locale)}
+                  {locked ? (lang === "ja" ? "（期限切れ）" : " (expired)") : ""}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -97,12 +107,12 @@ export default function Coupon({
           />
           {/* label */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className={`text-sm font-bold ${used || pct > 0.4 ? "text-white" : "text-gray-400"}`}>
-              {used ? (lang === "ja" ? "使用済み" : "USED") : busy ? "…" : (lang === "ja" ? "スライドして使用" : "Slide to use")}
+            <span className={`text-sm font-bold ${used || pct > 0.4 ? "text-white" : locked ? "text-rose-400" : "text-gray-400"}`}>
+              {used ? (lang === "ja" ? "使用済み" : "USED") : locked ? (lang === "ja" ? "期限切れ" : "Expired") : busy ? "…" : (lang === "ja" ? "スライドして使用" : "Slide to use")}
             </span>
           </div>
           {/* knob */}
-          {!used && (
+          {!used && !locked && (
             <div
               onPointerDown={onDown}
               onPointerMove={onMove}

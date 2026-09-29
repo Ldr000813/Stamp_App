@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
     body_ja: b.body_ja || null, body_en: b.body_en || null,
     image_url: b.image_url || null,
     required_stamps: req_n,
+    recurring: !!b.recurring,
   }).select("id").single();
   if (error || !data) return NextResponse.json({ error: error?.message || "insert_failed" }, { status: 500 });
   return NextResponse.json({ ok: true, id: data.id });
@@ -39,7 +40,7 @@ export async function PATCH(req: NextRequest) {
   if (!isAdminEmail(await getAuthEmail(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const b = await req.json().catch(() => ({} as any));
   if (!b?.id) return NextResponse.json({ error: "bad_request" }, { status: 400 });
-  const allowed = ["title_ja","title_en","body_ja","body_en","image_url","required_stamps","active"];
+  const allowed = ["title_ja","title_en","body_ja","body_en","image_url","required_stamps","active","recurring"];
   const update: any = {};
   for (const k of allowed) if (k in b) update[k] = b[k] === "" ? null : b[k];
   if ("required_stamps" in update) update.required_stamps = Math.max(1, parseInt(update.required_stamps, 10) || 5);
