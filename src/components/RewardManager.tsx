@@ -48,7 +48,7 @@ export default function RewardManager({ token, onUploadingChange }: { token: str
     e.preventDefault(); setMsg("");
     if (!form.title_ja) { setMsg("特典名（日本語）は必須です"); return; }
     if (!form.spot_ids.length) { setMsg("対象スポットを1つ以上選んでください"); return; }
-    const req = Math.min(Math.max(1, parseInt(form.required_stamps, 10) || 1), form.spot_ids.length);
+    const req = Math.max(1, parseInt(form.required_stamps, 10) || 1);
     const payload = { ...form, required_stamps: String(req) };
     const r = await fetch("/api/admin/rewards", {
       method: editingId ? "PATCH" : "POST",
@@ -89,6 +89,11 @@ export default function RewardManager({ token, onUploadingChange }: { token: str
               <input type="number" min={1} className="f-input w-24" value={form.required_stamps} onChange={(e) => set("required_stamps", e.target.value)} />
               <span className="text-sm text-gray-500">個</span>
             </div>
+            {form.spot_ids.length > 0 && (parseInt(form.required_stamps, 10) || 0) > form.spot_ids.length && (
+              <p className="col-span-2 text-xs text-amber-600">
+                ⚠ 必要数（{form.required_stamps}）が対象スポット数（{form.spot_ids.length}）より多いため、このままでは達成できません。対象スポットを増やすか、必要数を下げてください。
+              </p>
+            )}
             <label className="col-span-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 cursor-pointer">
               <input type="checkbox" className="w-4 h-4 accent-emerald-600" checked={!!form.recurring} onChange={(e) => setForm((f: any) => ({ ...f, recurring: e.target.checked }))} />
               <span className="text-sm text-slate-700"><strong>定期カード</strong>にする（コンプリートのたびにリセット＆クーポン付与、繰り返し可）</span>
