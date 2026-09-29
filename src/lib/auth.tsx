@@ -26,21 +26,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = path.startsWith("/admin");
 
   useEffect(() => {
-    let sub: any;
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      let s = data.session;
-      // Participants get an automatic anonymous account — no signup, no email.
-      if (!s && !isAdmin) {
-        const r = await supabase.auth.signInAnonymously();
-        s = r.data?.session ?? null;
-      }
+    let mounted = true;
+    // Subscribe first so we catch the SIGNED_IN that arrives after an OAuth return.
+    const listener = supabase.auth.onAuthStateChange((_e, s) => {
+      if (!mounted) return;
       setSession(s);
       setReady(true);
+    });
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const s = data.session;
+      if (s) { if (mounted) { setSession(s); setReady(true); } return; }
+
+      // If we just came back from a Google (OAuth/link) redirect, do NOT create a
+      // new anonymous user — that would overwrite the just-linked account. Wait for
+      // onAuthStateChange to deliver the linked session (with a safety fallback).
+      const url = typeof window !== "undefined" ? window.location.href : "";
+      const oauthInProgress = /[?&]code=|[#&]access_token=|[?&]error=/.test(url);
+      if (oauthInProgress) {
+        setTimeout(async () => {
+          if (!mounted) return;
+          const { data: d2 } = await supabase.auth.getSession();
+          if (!d2.session && !isAdmin) {
+            const r = await supabase.auth.signInAnonymously();
+            setSession(r.data?.session ?? null);
+          }
+          setReady(true);
+        }, 4000);
+        return;
+      }
+
+      // Normal load with no session: give participants an anonymous account.
+      if (!isAdmin) {
+        const r = await supabase.auth.signInAnonymously();
+        if (mounted) setSession(r.data?.session ?? null);
+      }
+      if (mounted) setReady(true);
     })();
-    const listener = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    sub = listener.data;
-    return () => sub?.subscription?.unsubscribe();
+
+    return () => { mounted = false; listener.data.subscription.unsubscribe(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, isAdmin]);
 
