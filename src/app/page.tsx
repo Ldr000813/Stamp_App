@@ -46,7 +46,7 @@ export default function Home() {
         {participantId && <RewardStampCards participantId={participantId} />}
 
         <Link href="/spots" className="mt-6 block text-center rounded-full bg-[#F6C64B] text-[#4b4640] font-bold py-3 shadow-sm">
-          {t("go_spots")}
+          {lang === "ja" ? "すべてのスポット一覧" : "All spots"}
         </Link>
 
         <AuthPanel />

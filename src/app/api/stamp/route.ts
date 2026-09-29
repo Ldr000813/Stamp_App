@@ -49,9 +49,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ already_complete: true, done: before, total: card.required_stamps });
   }
 
+  // JST calendar date, so "one per spot per day" matches Japan's day boundary.
+  const stampDate = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
   const { error: insErr } = await db.from("stamps").insert({
     participant_id: participantId, reward_id: card.id, campaign_id: card.campaign_id,
-    spot_id: spot.id, cycle,
+    spot_id: spot.id, cycle, stamp_date: stampDate,
     spot_name_ja: spot.name_ja, spot_name_en: spot.name_en, spot_image_url: spot.image_url,
   });
   const already = !!insErr && (insErr as any).code === "23505"; // this spot already on this card/cycle

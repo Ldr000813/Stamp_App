@@ -17,10 +17,14 @@ alter table rewards add column if not exists recurring boolean not null default 
 -- 2) stamps belong to a card and a cycle
 alter table stamps add column if not exists reward_id uuid references rewards(id) on delete cascade;
 alter table stamps add column if not exists cycle int not null default 0;
+alter table stamps add column if not exists stamp_date date;
 alter table stamps drop constraint if exists stamps_participant_id_campaign_id_spot_id_key;
 alter table stamps drop constraint if exists stamps_participant_reward_spot_cycle_key;
-alter table stamps add constraint stamps_participant_reward_spot_cycle_key
-  unique (participant_id, reward_id, spot_id, cycle);
+-- One stamp per spot PER DAY per card cycle (same spot on a new date counts again).
+-- stamp_date is set by the app (JST calendar date) so the index stays immutable.
+drop index if exists stamps_participant_reward_spot_cycle_date_idx;
+create unique index stamps_participant_reward_spot_cycle_date_idx
+  on stamps (participant_id, reward_id, spot_id, cycle, stamp_date);
 create index if not exists stamps_participant_reward_idx on stamps (participant_id, reward_id);
 
 -- 3) per-participant, per-card completion counter (= current cycle)

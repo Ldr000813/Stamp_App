@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 
 const QRScanner = dynamic(() => import("@/components/QRScanner"), { ssr: false });
@@ -12,6 +13,7 @@ export default function RewardStampCards({ participantId }: { participantId: str
   const [selected, setSelected] = useState<any>(null);      // stamp detail modal
   const [scanCard, setScanCard] = useState<any>(null);      // card being scanned
   const [congrats, setCongrats] = useState<any>(null);      // completion modal
+  const [spotsModal, setSpotsModal] = useState<any>(null);  // target-spots list modal
   const [toast, setToast] = useState("");
   const locale = lang === "ja" ? "ja-JP" : "en-US";
 
@@ -119,9 +121,11 @@ export default function RewardStampCards({ participantId }: { participantId: str
                   </div>
                   <p className="text-xs text-gray-400 text-center mt-2">{t("tap_stamp_hint")}</p>
                   {c.target_spots?.length > 0 && (
-                    <p className="text-xs text-gray-500 text-center mt-1">
-                      {(lang === "ja" ? "対象スポット: " : "Spots: ") + c.target_spots.map((s: any) => (lang === "ja" ? s.name_ja : s.name_en)).join(" ・ ")}
-                    </p>
+                    <div className="text-center mt-2">
+                      <button onClick={() => setSpotsModal({ spots: c.target_spots })} className="inline-flex items-center gap-1 rounded-full border border-[#33A6A0] text-[#33A6A0] text-sm font-bold px-4 py-1.5">
+                        📍 {lang === "ja" ? `対象スポット一覧（${c.target_spots.length}）` : `Target spots (${c.target_spots.length})`}
+                      </button>
+                    </div>
                   )}
                   {complete && !c.recurring && (
                     <div className="mt-2 text-center rounded-xl bg-[#FFF3CF] p-2 text-sm font-bold text-[#C9971E]">🎉 {t("complete_title")}</div>
@@ -141,6 +145,26 @@ export default function RewardStampCards({ participantId }: { participantId: str
 
       {scanCard && (
         <QRScanner lang={lang as "ja" | "en"} onClose={() => setScanCard(null)} onDetect={(token) => doScan(scanCard, token)} />
+      )}
+
+      {spotsModal && (
+        <div className="fixed inset-0 z-[76] bg-black/40 flex items-center justify-center p-4" onClick={() => setSpotsModal(null)}>
+          <div className="bg-white rounded-2xl max-w-xs w-full p-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-[#4b4640] text-center mb-3">📍 {lang === "ja" ? "対象スポット" : "Target spots"}</h3>
+            <ul className="space-y-2">
+              {spotsModal.spots.map((s: any) => (
+                <li key={s.id} className="rounded-xl border border-[#EAE3D3] p-3">
+                  <div className="font-bold text-[#4b4640] text-sm mb-2">{lang === "ja" ? s.name_ja : s.name_en}</div>
+                  <div className="flex gap-2">
+                    <Link href={`/spot/${s.id}`} className="flex-1 text-center rounded-full border border-[#33A6A0] text-[#33A6A0] text-sm font-bold py-1.5">{t("detail")}</Link>
+                    <a href={`/api/go?spot=${s.id}`} target="_blank" rel="noreferrer" className="flex-1 text-center rounded-full bg-[#F6C64B] text-[#4b4640] text-sm font-bold py-1.5">🧭 {t("directions")}</a>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => setSpotsModal(null)} className="mt-4 w-full rounded-full bg-slate-100 text-slate-600 font-bold py-2">{t("close")}</button>
+          </div>
+        </div>
       )}
 
       {selected && (
