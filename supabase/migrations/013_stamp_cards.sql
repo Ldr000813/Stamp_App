@@ -1,20 +1,20 @@
 -- ============================================================================
--- Redesign: stamps belong to a specific stamp card (reward). Cards can be
--- "recurring" (定期): on completion they reset and can be earned again.
--- Coupons are tied to a card and GRANTED (with a 2-month expiry) on completion.
+-- Stamp cards: each card has its own TARGET SPOTS and its own COUPONS.
+-- Stamps belong to a card + cycle (定期 cards reset each completion).
+-- On completion, the card's coupons are GRANTED with a 2-month expiry.
 -- NOTE: clears existing test data (stamps / coupons / rewards).
 -- ============================================================================
 
--- 0) clear old data (test data only)
+-- 0) clear old test data
 delete from stamps;
 delete from coupons;
 delete from rewards;
 drop table if exists coupon_redemptions;
 
--- 1) reward = stamp card; add recurring flag
+-- 1) reward = stamp card (+ recurring flag)
 alter table rewards add column if not exists recurring boolean not null default false;
 
--- 2) stamps belong to a card, and to a "cycle" (for recurring resets)
+-- 2) stamps belong to a card and a cycle
 alter table stamps add column if not exists reward_id uuid references rewards(id) on delete cascade;
 alter table stamps add column if not exists cycle int not null default 0;
 alter table stamps drop constraint if exists stamps_participant_id_campaign_id_spot_id_key;
@@ -31,10 +31,21 @@ create table if not exists card_state (
   primary key (participant_id, reward_id)
 );
 
--- 4) coupons belong to a card
-alter table coupons add column if not exists reward_id uuid references rewards(id) on delete cascade;
+-- 4) which spots count toward a card
+create table if not exists card_spots (
+  reward_id uuid not null references rewards(id) on delete cascade,
+  spot_id uuid not null references spots(id) on delete cascade,
+  primary key (reward_id, spot_id)
+);
 
--- 5) coupon grants: created when a card is completed (may repeat for 定期 cards)
+-- 5) which coupons a card grants on completion
+create table if not exists card_coupons (
+  reward_id uuid not null references rewards(id) on delete cascade,
+  coupon_id uuid not null references coupons(id) on delete cascade,
+  primary key (reward_id, coupon_id)
+);
+
+-- 6) coupon grants (2-month expiry; repeats for 定期 cards)
 create table if not exists coupon_grants (
   id uuid primary key default gen_random_uuid(),
   coupon_id uuid not null references coupons(id) on delete cascade,
@@ -44,7 +55,18 @@ create table if not exists coupon_grants (
   redeemed_at timestamptz
 );
 create index if not exists coupon_grants_participant_idx on coupon_grants (participant_id);
+
 alter table coupon_grants enable row level security;
 alter table card_state enable row level security;
+alter table card_spots enable row level security;
+alter table card_coupons enable row level security;
+
+drop policy if exists "public read grants" on coupon_grants;
+drop policy if exists "public read card_state" on card_state;
+drop policy if exists "public read card_spots" on card_spots;
+drop policy if exists "public read card_coupons" on card_coupons;
+
 create policy "public read grants" on coupon_grants for select using (true);
 create policy "public read card_state" on card_state for select using (true);
+create policy "public read card_spots" on card_spots for select using (true);
+create policy "public read card_coupons" on card_coupons for select using (true);

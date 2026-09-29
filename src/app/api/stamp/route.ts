@@ -27,6 +27,11 @@ export async function POST(req: NextRequest) {
     .select("id, active, required_stamps, recurring, campaign_id").eq("id", rewardId).maybeSingle();
   if (!card || !card.active) return NextResponse.json({ error: "card_not_found" }, { status: 404 });
 
+  // The spot must be one of this card's target spots.
+  const { data: target } = await db.from("card_spots")
+    .select("spot_id").eq("reward_id", card.id).eq("spot_id", spot.id).maybeSingle();
+  if (!target) return NextResponse.json({ not_target: true });
+
   // current cycle = number of completions so far
   const { data: state } = await db.from("card_state")
     .select("completions").eq("participant_id", participantId).eq("reward_id", card.id).maybeSingle();
@@ -57,8 +62,9 @@ export async function POST(req: NextRequest) {
 
   let granted: any[] = [];
   if (completed) {
-    const { data: coupons } = await db.from("coupons")
-      .select("id, title_ja, title_en").eq("reward_id", card.id).eq("active", true);
+    const { data: links } = await db.from("card_coupons")
+      .select("coupon:coupons(id, title_ja, title_en, active)").eq("reward_id", card.id);
+    const coupons = (links || []).map((l: any) => l.coupon).filter((c: any) => c && c.active);
     const expires_at = plusTwoMonths();
     for (const c of coupons || []) {
       // Non-recurring: grant once. Recurring: grant every completion.

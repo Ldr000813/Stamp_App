@@ -37,6 +37,7 @@ export default function RewardStampCards({ participantId }: { participantId: str
       body: JSON.stringify({ participantId, spotToken, rewardId: card.id }),
     }).then((x) => x.json()).catch(() => null);
     if (!r) { flash(lang === "ja" ? "通信に失敗しました" : "Network error"); return; }
+    if (r.not_target) { flash(lang === "ja" ? "このスポットはこのカードの対象外です" : "This spot is not part of this card"); return; }
     if (r.already) { flash(lang === "ja" ? "このスポットはこのカードで取得済みです" : "Already stamped on this card"); await load(); return; }
     if (r.already_complete) { flash(lang === "ja" ? "このカードはすでに達成済みです" : "This card is already complete"); return; }
     if (r.error) { flash(lang === "ja" ? "スタンプできませんでした" : "Could not add the stamp"); return; }
@@ -117,6 +118,11 @@ export default function RewardStampCards({ participantId }: { participantId: str
                     })}
                   </div>
                   <p className="text-xs text-gray-400 text-center mt-2">{t("tap_stamp_hint")}</p>
+                  {c.target_spots?.length > 0 && (
+                    <p className="text-xs text-gray-500 text-center mt-1">
+                      {(lang === "ja" ? "対象スポット: " : "Spots: ") + c.target_spots.map((s: any) => (lang === "ja" ? s.name_ja : s.name_en)).join(" ・ ")}
+                    </p>
+                  )}
                   {complete && !c.recurring && (
                     <div className="mt-2 text-center rounded-xl bg-[#FFF3CF] p-2 text-sm font-bold text-[#C9971E]">🎉 {t("complete_title")}</div>
                   )}

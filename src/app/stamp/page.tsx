@@ -43,7 +43,8 @@ function StampInner() {
     }).then((r) => r.json()).catch(() => null);
     await loadCards();
     if (!res || res.error) { setResult({ kind: "error", card }); setPhase("pick"); return; }
-    if (res.already) setResult({ kind: "already", card });
+    if (res.not_target) setResult({ kind: "not_target", card });
+    else if (res.already) setResult({ kind: "already", card });
     else if (res.already_complete) setResult({ kind: "done", card });
     else if (res.completed) setResult({ kind: "completed", card, granted: res.granted || [], recurring: res.recurring });
     else setResult({ kind: "got", card });
@@ -106,6 +107,7 @@ function StampInner() {
           <div className="mt-5 text-center">
             {result.kind === "got" && <><div className="text-5xl">🎉</div><h2 className="text-lg font-extrabold text-emerald-700 mt-1">{t("stamp_got")}</h2></>}
             {result.kind === "already" && <h2 className="text-base font-bold text-amber-600">{lang === "ja" ? "このカードでは取得済みです" : "Already stamped on this card"}</h2>}
+            {result.kind === "not_target" && <h2 className="text-base font-bold text-rose-500">{lang === "ja" ? "このスポットはこのカードの対象外です" : "Not part of this card"}</h2>}
             {result.kind === "done" && <h2 className="text-base font-bold text-amber-600">{lang === "ja" ? "このカードは達成済みです" : "This card is complete"}</h2>}
             {result.kind === "error" && <h2 className="text-base font-bold text-red-600">{t("stamp_error")}</h2>}
           </div>

@@ -17,8 +17,19 @@ export async function GET(req: NextRequest) {
     .select("*").eq("campaign_id", campaign.id).eq("active", true)
     .order("created_at", { ascending: true });
 
+  // target spots per card (names, for display)
+  const cardIds = (cards || []).map((c: any) => c.id);
+  const targetsByCard: Record<string, any[]> = {};
+  if (cardIds.length) {
+    const { data: cs } = await db.from("card_spots")
+      .select("reward_id, spot:spots(id, name_ja, name_en)").in("reward_id", cardIds);
+    for (const row of cs || []) {
+      (targetsByCard[row.reward_id] ||= []).push(row.spot);
+    }
+  }
+
   if (!participantId || !(cards || []).length) {
-    return NextResponse.json({ rewards: (cards || []).map((c: any) => ({ ...c, progress: 0, unlocked: false, stamps: [], completions: 0 })) });
+    return NextResponse.json({ rewards: (cards || []).map((c: any) => ({ ...c, progress: 0, unlocked: false, stamps: [], completions: 0, target_spots: targetsByCard[c.id] || [] })) });
   }
 
   // completions per card (= current cycle)
@@ -42,6 +53,7 @@ export async function GET(req: NextRequest) {
       progress: mine.length,
       unlocked: mine.length >= c.required_stamps,
       stamps: mine,
+      target_spots: targetsByCard[c.id] || [],
     };
   });
   return NextResponse.json({ rewards: out });
