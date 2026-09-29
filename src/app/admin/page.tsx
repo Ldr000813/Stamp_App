@@ -135,7 +135,7 @@ export default function Admin() {
   }
   const set = (k: string, v: string) => setForm((f: any) => ({ ...f, [k]: v }));
 
-  if (!session) {
+  if (!session || session.user?.is_anonymous) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
         <Card className="w-full max-w-sm p-6">
