@@ -147,7 +147,7 @@ function StampInner() {
                 : "Link Google so your stamps survive clearing data or changing phones."}
             </p>
             <button
-              onClick={() => linkGoogle()}
+              onClick={() => linkGoogle("/")}
               className="mt-3 w-full rounded-full bg-white border border-slate-300 text-slate-700 font-bold py-2.5 flex items-center justify-center gap-2 shadow-sm"
             >
               <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
@@ -198,7 +198,7 @@ function StampInner() {
               {lang === "ja" ? "※この案内は初回のみ表示されます" : "Shown once."}
             </p>
             <button
-              onClick={() => { setPendingHandoff(false); linkGoogle(); }}
+              onClick={() => { setPendingHandoff(false); linkGoogle("/"); }}
               className="mt-4 w-full rounded-full bg-white border border-slate-300 text-slate-700 font-bold py-3 flex items-center justify-center gap-2 shadow-sm"
             >
               <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">

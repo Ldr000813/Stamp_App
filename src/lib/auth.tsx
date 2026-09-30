@@ -14,8 +14,8 @@ type Ctx = {
   clearAuthError: () => void;
   supabase: ReturnType<typeof supabaseBrowser>;
   refresh: () => void;
-  linkGoogle: () => Promise<AuthResult>;
-  signInGoogle: () => Promise<AuthResult>;
+  linkGoogle: (next?: string) => Promise<AuthResult>;
+  signInGoogle: (next?: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
 const AuthContext = createContext<Ctx>(null as any);
@@ -122,20 +122,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAnonymous = !!session?.user?.is_anonymous;
   const refresh = useCallback(() => setTick((t) => t + 1), []);
   const clearAuthError = useCallback(() => setAuthError(""), []);
-  // Return to the SAME page after the Google round-trip (so owners land back on
-  // /owner, participants back on home). The Supabase redirect allowlist uses /**.
-  const redirectTo = typeof window !== "undefined" ? window.location.origin + window.location.pathname : undefined;
+  // Where to land after the Google round-trip. Defaults to the current page
+  // (owners → /owner). Callers can pass a path, e.g. "/" so a hand-off from the
+  // stamp page returns to home instead of a spot URL that no longer has ?spot.
+  // The Supabase redirect allowlist uses /**.
+  const buildRedirect = (next?: string) =>
+    typeof window !== "undefined" ? window.location.origin + (next || window.location.pathname) : undefined;
 
   // linkIdentity/signInWithOAuth return { error } instead of throwing. Surface it
   // (before the browser redirect) so a failed link never looks like "nothing happened".
-  const linkGoogle = useCallback(async (): Promise<AuthResult> => {
-    const { error } = await supabase.auth.linkIdentity({ provider: "google", options: { redirectTo } } as any);
+  const linkGoogle = useCallback(async (next?: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.linkIdentity({ provider: "google", options: { redirectTo: buildRedirect(next) } } as any);
     return error ? { error: error.message } : {};
-  }, [supabase, redirectTo]);
-  const signInGoogle = useCallback(async (): Promise<AuthResult> => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+  }, [supabase]);
+  const signInGoogle = useCallback(async (next?: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: buildRedirect(next) } });
     return error ? { error: error.message } : {};
-  }, [supabase, redirectTo]);
+  }, [supabase]);
   const signOut = useCallback(async () => { await supabase.auth.signOut(); }, [supabase]);
 
   let content: React.ReactNode = children;
