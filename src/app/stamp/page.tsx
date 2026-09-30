@@ -76,6 +76,14 @@ function StampInner() {
         <span className="flex-1 text-center font-bold">{t("spot_info")}</span>
         <LangToggle />
       </div>
+      {phase === "busy" && (
+        <div className="fixed inset-0 z-[90] bg-black/30 backdrop-blur-sm flex items-center justify-center" aria-live="assertive" aria-busy="true">
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-8 py-6 shadow-lg">
+            <span className="h-9 w-9 rounded-full border-[3px] border-emerald-500 border-t-transparent animate-spin" />
+            <p className="text-sm font-medium text-slate-700">{lang === "ja" ? "スタンプを取得中…" : "Adding your stamp…"}</p>
+          </div>
+        </div>
+      )}
       <main className="mx-auto max-w-md px-4 pb-16">
         {spot?.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -86,7 +94,14 @@ function StampInner() {
         <h1 className="text-center text-2xl font-bold text-[#33A6A0] mt-4">{name || "…"}</h1>
         <div className="w-10 h-1 bg-[#33A6A0] mx-auto rounded mt-2 mb-4" />
 
-        {phase === "error" && <h2 className="text-center text-lg font-bold text-red-600">{t("stamp_error")}</h2>}
+        {phase === "error" && (
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-red-600">{t("stamp_error")}</h2>
+            <Link href="/" className="inline-block mt-4 rounded-full bg-[#F6C64B] text-[#4b4640] font-bold px-6 py-3 active:scale-95">
+              🏠 {lang === "ja" ? "ホーム画面へ戻る" : "Back to home"}
+            </Link>
+          </div>
+        )}
         {phase === "loading" && <p className="text-center">{t("loading")}</p>}
 
         {(phase === "pick" || phase === "busy") && (
@@ -125,6 +140,11 @@ function StampInner() {
             {result.kind === "not_target" && <h2 className="text-base font-bold text-rose-500">{lang === "ja" ? "このスポットはこのカードの対象外です" : "Not part of this card"}</h2>}
             {result.kind === "done" && <h2 className="text-base font-bold text-amber-600">{lang === "ja" ? "このカードは達成済みです" : "This card is complete"}</h2>}
             {result.kind === "error" && <h2 className="text-base font-bold text-red-600">{t("stamp_error")}</h2>}
+            {(result.kind === "already" || result.kind === "not_target" || result.kind === "done" || result.kind === "error") && (
+              <Link href="/" className="inline-block mt-4 rounded-full bg-[#F6C64B] text-[#4b4640] font-bold px-6 py-3 active:scale-95">
+                🏠 {lang === "ja" ? "ホーム画面へ戻る" : "Back to home"}
+              </Link>
+            )}
           </div>
         )}
 
