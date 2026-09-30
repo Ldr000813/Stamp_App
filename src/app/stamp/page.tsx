@@ -4,12 +4,13 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import LangToggle from "@/components/LangToggle";
 
 const HANDOFF_FLAG = "tonari_handoff_prompted";
 
 function StampInner() {
   const { t, lang } = useI18n();
-  const { participantId, ready, isAnonymous, linkGoogle } = useAuth();
+  const { participantId, ready, isAnonymous, linkGoogle, session } = useAuth();
   const params = useSearchParams();
   const token = params.get("spot");
   const [spot, setSpot] = useState<any>(null);
@@ -73,7 +74,7 @@ function StampInner() {
       <div className="sticky top-0 z-30 bg-[#F6C64B] text-[#4b4640] flex items-center px-4 py-3">
         <Link href="/" className="text-sm font-bold">‹ {t("back")}</Link>
         <span className="flex-1 text-center font-bold">{t("spot_info")}</span>
-        <span className="w-10" />
+        <LangToggle />
       </div>
       <main className="mx-auto max-w-md px-4 pb-16">
         {spot?.image_url ? (
@@ -148,6 +149,18 @@ function StampInner() {
               </svg>
               {lang === "ja" ? "Googleで引き継ぎを設定" : "Link with Google"}
             </button>
+          </div>
+        )}
+
+        {/* Signed in (e.g. just finished hand-off) → guide back to home. */}
+        {!isAnonymous && session?.user && (
+          <div className="mt-8 text-center">
+            <p className="text-sm text-[#33A6A0] font-bold mb-2">
+              {lang === "ja" ? "引き継ぎ済みです。スタンプは安全に保存されています。" : "Linked — your stamps are safely saved."}
+            </p>
+            <Link href="/" className="inline-block rounded-full bg-[#F6C64B] text-[#4b4640] font-bold px-6 py-3 active:scale-95">
+              🏠 {lang === "ja" ? "ホーム画面へ戻る" : "Back to home"}
+            </Link>
           </div>
         )}
       </main>
