@@ -33,9 +33,11 @@ function readOAuthError(): { code: string; desc: string } | null {
   };
 }
 function friendlyAuthError(code: string, desc: string): string {
-  const blob = (code + " " + desc).toLowerCase();
-  if (/identity.*already|already.*(linked|exist)|identity_already_exists/.test(blob)) {
-    return "このGoogleアカウントは既に連携済みです。下の「Googleでログイン」からお入りください。";
+  const blob = decodeURIComponent((code + " " + desc).replace(/\+/g, " ")).toLowerCase();
+  // Any "already exists / already registered / identity already linked" case means
+  // this Google account already belongs to an account → they should sign in, not link.
+  if (/already|identity_already_exists|email_exists|user_already/.test(blob)) {
+    return "このGoogleアカウントは既に登録済みです。下の「Googleでログイン」からお入りください。";
   }
   return decodeURIComponent(desc || "連携に失敗しました。もう一度お試しください。").replace(/\+/g, " ");
 }

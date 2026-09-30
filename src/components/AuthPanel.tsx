@@ -33,7 +33,7 @@ export default function AuthPanel() {
   // An error returned from a failed link/sign-in redirect, or from the button call.
   const shownError = msg || authError;
   // "Already linked" → steer the user to the sign-in button.
-  const alreadyLinked = /既に連携|already/.test(authError);
+  const alreadyLinked = /既に(連携|登録)|already/.test(shownError);
 
   async function link() {
     setBusy(true); setMsg(""); clearAuthError();
