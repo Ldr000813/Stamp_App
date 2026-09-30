@@ -3,25 +3,53 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { usePathname } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
+type AuthResult = { error?: string };
 type Ctx = {
   session: any;
   participantId: string;
   ready: boolean;
   isAnonymous: boolean;
   tick: number;
+  authError: string;
+  clearAuthError: () => void;
   supabase: ReturnType<typeof supabaseBrowser>;
   refresh: () => void;
-  linkGoogle: () => Promise<void>;
-  signInGoogle: () => Promise<void>;
+  linkGoogle: () => Promise<AuthResult>;
+  signInGoogle: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
 const AuthContext = createContext<Ctx>(null as any);
+
+// Parse an OAuth error returned in the URL (either ?query or #hash form).
+function readOAuthError(): { code: string; desc: string } | null {
+  if (typeof window === "undefined") return null;
+  const q = new URLSearchParams(window.location.search);
+  const h = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const err = q.get("error") || h.get("error") || q.get("error_code") || h.get("error_code");
+  if (!err) return null;
+  return {
+    code: (q.get("error_code") || h.get("error_code") || q.get("error") || h.get("error") || "").toLowerCase(),
+    desc: q.get("error_description") || h.get("error_description") || "",
+  };
+}
+function friendlyAuthError(code: string, desc: string): string {
+  const blob = (code + " " + desc).toLowerCase();
+  if (/identity.*already|already.*(linked|exist)|identity_already_exists/.test(blob)) {
+    return "このGoogleアカウントは既に連携済みです。下の「Googleでログイン」からお入りください。";
+  }
+  return decodeURIComponent(desc || "連携に失敗しました。もう一度お試しください。").replace(/\+/g, " ");
+}
+function cleanOAuthUrl() {
+  if (typeof window === "undefined") return;
+  window.history.replaceState({}, "", window.location.pathname);
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => supabaseBrowser());
   const [session, setSession] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [tick, setTick] = useState(0);
+  const [authError, setAuthError] = useState("");
   const path = usePathname() || "";
   const isAdmin = path.startsWith("/admin");
 
@@ -45,15 +73,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     (async () => {
+      // A failed Google link/sign-in returns an error in the URL. The user's
+      // existing (anonymous) session is still intact, so surface the reason and
+      // keep going rather than silently swallowing it.
+      const oauthErr = readOAuthError();
+      if (oauthErr) {
+        cleanOAuthUrl();
+        if (mounted) setAuthError(friendlyAuthError(oauthErr.code, oauthErr.desc));
+      }
+
       const { data } = await supabase.auth.getSession();
       const s = data.session;
       if (s) { if (mounted) { setSession(s); setReady(true); } return; }
 
-      // If we just came back from a Google (OAuth/link) redirect, do NOT create a
-      // new anonymous user — that would overwrite the just-linked account. Wait for
-      // onAuthStateChange to deliver the linked session (with a safety fallback).
+      // If we just came back from a successful Google (OAuth/link) redirect, do NOT
+      // create a new anonymous user — that would overwrite the just-linked account.
+      // Wait for onAuthStateChange to deliver the session (with a safety fallback).
       const url = typeof window !== "undefined" ? window.location.href : "";
-      const oauthInProgress = /[?&]code=|[#&]access_token=|[?&]error=/.test(url);
+      const oauthInProgress = !oauthErr && /[?&]code=|[#&]access_token=/.test(url);
       if (oauthInProgress) {
         setTimeout(async () => {
           if (!mounted) return;
@@ -82,13 +119,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const participantId = session?.user?.id || "";
   const isAnonymous = !!session?.user?.is_anonymous;
   const refresh = useCallback(() => setTick((t) => t + 1), []);
+  const clearAuthError = useCallback(() => setAuthError(""), []);
   const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
 
-  const linkGoogle = useCallback(async () => {
-    await supabase.auth.linkIdentity({ provider: "google", options: { redirectTo } } as any);
+  // linkIdentity/signInWithOAuth return { error } instead of throwing. Surface it
+  // (before the browser redirect) so a failed link never looks like "nothing happened".
+  const linkGoogle = useCallback(async (): Promise<AuthResult> => {
+    const { error } = await supabase.auth.linkIdentity({ provider: "google", options: { redirectTo } } as any);
+    return error ? { error: error.message } : {};
   }, [supabase, redirectTo]);
-  const signInGoogle = useCallback(async () => {
-    await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+  const signInGoogle = useCallback(async (): Promise<AuthResult> => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+    return error ? { error: error.message } : {};
   }, [supabase, redirectTo]);
   const signOut = useCallback(async () => { await supabase.auth.signOut(); }, [supabase]);
 
@@ -105,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, participantId, ready, isAnonymous, tick, supabase, refresh, linkGoogle, signInGoogle, signOut }}>
+    <AuthContext.Provider value={{ session, participantId, ready, isAnonymous, tick, authError, clearAuthError, supabase, refresh, linkGoogle, signInGoogle, signOut }}>
       {content}
     </AuthContext.Provider>
   );

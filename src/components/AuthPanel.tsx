@@ -15,7 +15,7 @@ function GoogleG() {
 }
 
 export default function AuthPanel() {
-  const { session, isAnonymous, linkGoogle, signInGoogle, signOut } = useAuth();
+  const { session, isAnonymous, authError, clearAuthError, linkGoogle, signInGoogle, signOut } = useAuth();
   const { lang } = useI18n();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -24,14 +24,31 @@ export default function AuthPanel() {
   if (session?.user && !isAnonymous) {
     return (
       <div className="mt-6 text-center text-xs text-gray-500">
-        {lang === "ja" ? "ログイン中: " : "Signed in: "}{session.user.email || "Google"}
+        {lang === "ja" ? "ログイン中: " : "Signed in: "}{session.user.email || "Google"}{" "}
         <button onClick={() => signOut()} className="underline">{lang === "ja" ? "ログアウト" : "Sign out"}</button>
       </div>
     );
   }
 
-  async function link() { setBusy(true); setMsg(""); try { await linkGoogle(); } catch (e: any) { setMsg(e?.message || (lang === "ja" ? "連携に失敗しました" : "Linking failed")); setBusy(false); } }
-  async function login() { setBusy(true); setMsg(""); try { await signInGoogle(); } catch (e: any) { setMsg(e?.message || (lang === "ja" ? "ログインに失敗しました" : "Sign-in failed")); setBusy(false); } }
+  // An error returned from a failed link/sign-in redirect, or from the button call.
+  const shownError = msg || authError;
+  // "Already linked" → steer the user to the sign-in button.
+  const alreadyLinked = /既に連携|already/.test(authError);
+
+  async function link() {
+    setBusy(true); setMsg(""); clearAuthError();
+    try {
+      const { error } = await linkGoogle();        // resolves only if it did NOT redirect (i.e. failed)
+      if (error) { setMsg(error); setBusy(false); }
+    } catch (e: any) { setMsg(e?.message || (lang === "ja" ? "連携に失敗しました" : "Linking failed")); setBusy(false); }
+  }
+  async function login() {
+    setBusy(true); setMsg(""); clearAuthError();
+    try {
+      const { error } = await signInGoogle();
+      if (error) { setMsg(error); setBusy(false); }
+    } catch (e: any) { setMsg(e?.message || (lang === "ja" ? "ログインに失敗しました" : "Sign-in failed")); setBusy(false); }
+  }
 
   return (
     <div className="mt-6 mx-auto max-w-xs rounded-2xl bg-[#EAF6F3] border border-[#CDE9E3] p-4 text-center">
@@ -44,10 +61,10 @@ export default function AuthPanel() {
       <button onClick={link} disabled={busy} className="mt-3 w-full rounded-full bg-white border border-slate-300 text-slate-700 font-bold py-2.5 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm">
         <GoogleG /> {lang === "ja" ? "Googleで引き継ぎを設定" : "Link with Google"}
       </button>
-      <button onClick={login} disabled={busy} className="mt-2 text-xs text-gray-500 underline">
+      <button onClick={login} disabled={busy} className={"mt-2 text-xs underline " + (alreadyLinked ? "text-[#33A6A0] font-bold" : "text-gray-500")}>
         {lang === "ja" ? "別の端末で連携済みの方（Googleでログイン）" : "Already linked? Sign in with Google"}
       </button>
-      {msg && <p className="text-xs text-red-600 mt-2">{msg}</p>}
+      {shownError && <p className="text-xs text-red-600 mt-2">{shownError}</p>}
     </div>
   );
 }
