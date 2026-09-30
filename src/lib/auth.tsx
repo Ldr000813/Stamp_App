@@ -28,8 +28,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
     // Subscribe first so we catch the SIGNED_IN that arrives after an OAuth return.
-    const listener = supabase.auth.onAuthStateChange((_e, s) => {
+    const listener = supabase.auth.onAuthStateChange(async (event, s) => {
       if (!mounted) return;
+      // Participants are anonymous by default. If they sign out (e.g. leaving a
+      // linked Google account), immediately hand them a fresh anonymous session
+      // instead of dropping them on the "could not start" screen.
+      if (!s && !isAdmin && event === "SIGNED_OUT") {
+        const r = await supabase.auth.signInAnonymously();
+        if (!mounted) return;
+        setSession(r.data?.session ?? null);
+        setReady(true);
+        return;
+      }
       setSession(s);
       setReady(true);
     });
