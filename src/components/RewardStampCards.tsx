@@ -1,15 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { useCachedFetch, mutate } from "@/lib/swr";
 
 const QRScanner = dynamic(() => import("@/components/QRScanner"), { ssr: false });
 
 export default function RewardStampCards({ participantId }: { participantId: string }) {
   const { t, lang } = useI18n();
-  const [cards, setCards] = useState<any[] | null>(null);
+  const url = participantId ? `/api/rewards?participantId=${participantId}` : null;
+  const { data } = useCachedFetch<{ rewards: any[] }>(url);
+  const cards: any[] | null = data?.rewards ?? null;
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const initedRef = useRef(false);
   const [selected, setSelected] = useState<any>(null);      // stamp detail modal
   const [scanCard, setScanCard] = useState<any>(null);      // card being scanned
   const [congrats, setCongrats] = useState<any>(null);      // completion modal
@@ -17,15 +21,15 @@ export default function RewardStampCards({ participantId }: { participantId: str
   const [toast, setToast] = useState("");
   const locale = lang === "ja" ? "ja-JP" : "en-US";
 
-  async function load() {
-    const rw = await fetch(`/api/rewards?participantId=${participantId}`, { cache: "no-store" })
-      .then((r) => r.json()).catch(() => ({ rewards: [] }));
-    const list: any[] = rw.rewards || [];
-    setCards(list);
-    // Multiple cards → all collapsed; single card → expanded.
-    setExpanded((prev) => (prev.size ? prev : new Set(list.length === 1 ? [list[0].id] : [])));
-  }
-  useEffect(() => { if (participantId) load(); /* eslint-disable-next-line */ }, [participantId]);
+  // Refresh from the server (uses the shared cache; instant + background revalidate).
+  const load = () => mutate(url);
+
+  // Set initial expand state once, when cards first arrive.
+  useEffect(() => {
+    if (initedRef.current || !cards) return;
+    initedRef.current = true;
+    setExpanded(new Set(cards.length === 1 ? [cards[0].id] : []));
+  }, [cards]);
 
   function toggle(id: string) {
     setExpanded((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });

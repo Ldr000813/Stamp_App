@@ -7,26 +7,43 @@ import { useEffect, useState } from "react";
 // tabs feels immediate instead of showing a loading spinner every time.
 const cache = new Map<string, any>();
 const subs = new Map<string, Set<() => void>>();
+const inflight = new Map<string, Promise<void>>();
 
 function notify(url: string) {
   subs.get(url)?.forEach((fn) => fn());
 }
 
-async function revalidate(url: string) {
-  try {
-    const r = await fetch(url, { cache: "no-store" });
-    const j = await r.json();
-    cache.set(url, j);
-    notify(url);
-  } catch {
-    /* keep previous cached value */
-  }
+function revalidate(url: string): Promise<void> {
+  // De-dupe concurrent requests for the same URL (e.g. a prefetch and a mount
+  // firing together) so we only hit the network once.
+  const existing = inflight.get(url);
+  if (existing) return existing;
+  const p = (async () => {
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      const j = await r.json();
+      cache.set(url, j);
+      notify(url);
+    } catch {
+      /* keep previous cached value */
+    } finally {
+      inflight.delete(url);
+    }
+  })();
+  inflight.set(url, p);
+  return p;
 }
 
 /** Warm the cache ahead of navigation (e.g. from the home screen). */
 export function prefetch(url: string | null | undefined) {
   if (!url) return;
   if (!cache.has(url)) revalidate(url);
+}
+
+/** Force a refresh of a cached URL (e.g. after a mutation like scanning a stamp). */
+export function mutate(url: string | null | undefined) {
+  if (!url) return Promise.resolve();
+  return revalidate(url);
 }
 
 export function useCachedFetch<T = any>(url: string | null): { data: T | undefined; loading: boolean } {

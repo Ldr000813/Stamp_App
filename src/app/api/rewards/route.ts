@@ -17,32 +17,36 @@ export async function GET(req: NextRequest) {
     .select("*").eq("campaign_id", campaign.id).eq("active", true)
     .order("created_at", { ascending: true });
 
-  // target spots per card (names, for display)
   const cardIds = (cards || []).map((c: any) => c.id);
+
+  // Fetch target spots, per-card completions and the participant's stamps in
+  // parallel (they don't depend on each other) instead of one after another.
+  const [csRes, statesRes, stampsRes] = await Promise.all([
+    cardIds.length
+      ? db.from("card_spots").select("reward_id, spot:spots(id, name_ja, name_en)").in("reward_id", cardIds)
+      : Promise.resolve({ data: [] as any[] }),
+    participantId && cardIds.length
+      ? db.from("card_state").select("reward_id, completions").eq("participant_id", participantId)
+      : Promise.resolve({ data: [] as any[] }),
+    participantId && cardIds.length
+      ? db.from("stamps")
+          .select("reward_id, cycle, spot_name_ja, spot_name_en, spot_image_url, acquired_at")
+          .eq("participant_id", participantId).order("acquired_at", { ascending: true })
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
   const targetsByCard: Record<string, any[]> = {};
-  if (cardIds.length) {
-    const { data: cs } = await db.from("card_spots")
-      .select("reward_id, spot:spots(id, name_ja, name_en)").in("reward_id", cardIds);
-    for (const row of cs || []) {
-      (targetsByCard[row.reward_id] ||= []).push(row.spot);
-    }
+  for (const row of (csRes.data as any[]) || []) {
+    (targetsByCard[row.reward_id] ||= []).push(row.spot);
   }
 
   if (!participantId || !(cards || []).length) {
     return NextResponse.json({ rewards: (cards || []).map((c: any) => ({ ...c, progress: 0, unlocked: false, stamps: [], completions: 0, target_spots: targetsByCard[c.id] || [] })) });
   }
 
-  // completions per card (= current cycle)
-  const { data: states } = await db.from("card_state")
-    .select("reward_id, completions").eq("participant_id", participantId);
   const cycleOf: Record<string, number> = {};
-  for (const s of states || []) cycleOf[s.reward_id] = s.completions;
-
-  // all of this participant's stamps (we filter by card+cycle in JS)
-  const { data: stamps } = await db.from("stamps")
-    .select("reward_id, cycle, spot_name_ja, spot_name_en, spot_image_url, acquired_at")
-    .eq("participant_id", participantId)
-    .order("acquired_at", { ascending: true });
+  for (const s of (statesRes.data as any[]) || []) cycleOf[s.reward_id] = s.completions;
+  const stamps = (stampsRes.data as any[]) || [];
 
   const out = (cards || []).map((c: any) => {
     const cycle = cycleOf[c.id] ?? 0;
