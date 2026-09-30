@@ -94,14 +94,7 @@ function StampInner() {
         <h1 className="text-center text-2xl font-bold text-[#33A6A0] mt-4">{name || "…"}</h1>
         <div className="w-10 h-1 bg-[#33A6A0] mx-auto rounded mt-2 mb-4" />
 
-        {phase === "error" && (
-          <div className="text-center">
-            <h2 className="text-lg font-bold text-red-600">{t("stamp_error")}</h2>
-            <Link href="/" className="inline-block mt-4 rounded-full bg-[#F6C64B] text-[#4b4640] font-bold px-6 py-3 active:scale-95">
-              🏠 {lang === "ja" ? "ホーム画面へ戻る" : "Back to home"}
-            </Link>
-          </div>
-        )}
+        {phase === "error" && <h2 className="text-center text-lg font-bold text-red-600">{t("stamp_error")}</h2>}
         {phase === "loading" && <p className="text-center">{t("loading")}</p>}
 
         {(phase === "pick" || phase === "busy") && (
@@ -140,11 +133,6 @@ function StampInner() {
             {result.kind === "not_target" && <h2 className="text-base font-bold text-rose-500">{lang === "ja" ? "このスポットはこのカードの対象外です" : "Not part of this card"}</h2>}
             {result.kind === "done" && <h2 className="text-base font-bold text-amber-600">{lang === "ja" ? "このカードは達成済みです" : "This card is complete"}</h2>}
             {result.kind === "error" && <h2 className="text-base font-bold text-red-600">{t("stamp_error")}</h2>}
-            {(result.kind === "already" || result.kind === "not_target" || result.kind === "done" || result.kind === "error") && (
-              <Link href="/" className="inline-block mt-4 rounded-full bg-[#F6C64B] text-[#4b4640] font-bold px-6 py-3 active:scale-95">
-                🏠 {lang === "ja" ? "ホーム画面へ戻る" : "Back to home"}
-              </Link>
-            )}
           </div>
         )}
 
@@ -172,17 +160,24 @@ function StampInner() {
           </div>
         )}
 
-        {/* Signed in (e.g. just finished hand-off) → guide back to home. */}
-        {!isAnonymous && session?.user && (
-          <div className="mt-8 text-center">
-            <p className="text-sm text-[#33A6A0] font-bold mb-2">
-              {lang === "ja" ? "引き継ぎ済みです。スタンプは安全に保存されています。" : "Linked — your stamps are safely saved."}
-            </p>
-            <Link href="/" className="inline-block rounded-full bg-[#F6C64B] text-[#4b4640] font-bold px-6 py-3 active:scale-95">
-              🏠 {lang === "ja" ? "ホーム画面へ戻る" : "Back to home"}
-            </Link>
-          </div>
-        )}
+        {/* A single "back to home" CTA (green text), shown on terminal / signed-in states. */}
+        {(() => {
+          const terminal = result && ["already", "not_target", "done", "error"].includes(result.kind);
+          const signedIn = !isAnonymous && !!session?.user;
+          if (!(phase === "error" || terminal || signedIn)) return null;
+          return (
+            <div className="mt-8 text-center">
+              {signedIn && (
+                <p className="text-sm text-[#33A6A0] font-bold mb-3">
+                  {lang === "ja" ? "引き継ぎ済みです。スタンプは安全に保存されています。" : "Linked — your stamps are safely saved."}
+                </p>
+              )}
+              <Link href="/" className="inline-block rounded-full border-2 border-[#33A6A0] text-[#33A6A0] font-bold px-6 py-3 active:scale-95">
+                🏠 {lang === "ja" ? "ホーム画面へ戻る" : "Back to home"}
+              </Link>
+            </div>
+          );
+        })()}
       </main>
 
       {/* One-time hand-off nudge. Held back until the completion modal is closed. */}
