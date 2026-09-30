@@ -126,6 +126,30 @@ function StampInner() {
             {result.kind === "error" && <h2 className="text-base font-bold text-red-600">{t("stamp_error")}</h2>}
           </div>
         )}
+
+        {/* Persistent hand-off entry for anonymous users (e.g. after tapping "あとで"). */}
+        {isAnonymous && (
+          <div className="mt-8 rounded-2xl bg-[#EAF6F3] border border-[#CDE9E3] p-4 text-center">
+            <p className="text-sm font-bold text-[#33A6A0]">📱 {lang === "ja" ? "スタンプを保存・引き継ぎ" : "Save & carry your stamps"}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {lang === "ja"
+                ? "機種変更やデータ削除でスタンプが消えないよう、Googleで引き継ぎを設定できます。"
+                : "Link Google so your stamps survive clearing data or changing phones."}
+            </p>
+            <button
+              onClick={() => linkGoogle()}
+              className="mt-3 w-full rounded-full bg-white border border-slate-300 text-slate-700 font-bold py-2.5 flex items-center justify-center gap-2 shadow-sm"
+            >
+              <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z" />
+                <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5C43.3 37.4 46.1 31.5 46.1 24.5z" />
+                <path fill="#FBBC05" d="M10.4 28.3c-.5-1.4-.8-2.8-.8-4.3s.3-3 .8-4.3l-7.8-6.1C.9 16.7 0 20.2 0 24s.9 7.3 2.6 10.4l7.8-6.1z" />
+                <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.8-5.8l-7.1-5.5c-2 1.3-4.5 2.1-8.7 2.1-6.3 0-11.7-3.7-13.6-9.1l-7.8 6.1C6.5 42.6 14.6 48 24 48z" />
+              </svg>
+              {lang === "ja" ? "Googleで引き継ぎを設定" : "Link with Google"}
+            </button>
+          </div>
+        )}
       </main>
 
       {/* One-time hand-off nudge. Held back until the completion modal is closed. */}
