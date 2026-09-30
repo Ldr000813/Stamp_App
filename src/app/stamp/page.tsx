@@ -136,8 +136,9 @@ function StampInner() {
           </div>
         )}
 
-        {/* Persistent hand-off entry for anonymous users (e.g. after tapping "あとで"). */}
-        {isAnonymous && (
+        {/* Persistent hand-off entry for anonymous users (e.g. after tapping "あとで").
+            Hidden on the error screen — there's no stamp to save there. */}
+        {isAnonymous && phase !== "error" && (
           <div className="mt-8 rounded-2xl bg-[#EAF6F3] border border-[#CDE9E3] p-4 text-center">
             <p className="text-sm font-bold text-[#33A6A0]">📱 {lang === "ja" ? "スタンプを保存・引き継ぎ" : "Save & carry your stamps"}</p>
             <p className="text-xs text-gray-500 mt-1">
