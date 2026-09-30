@@ -18,7 +18,9 @@
     "test:directions": "node scripts/test_directions.mjs",
     "test:adminsec": "node scripts/test_admin_security.mjs",
     "test:all": "node scripts/test_all.mjs",
-    "test:chaos": "node scripts/test_chaos.mjs"
+    "test:chaos": "node scripts/test_chaos.mjs",
+    "test:chaos2": "node scripts/test_chaos2.mjs",
+    "test:exploit": "node scripts/test_exploit.mjs"
   },
   "dependencies": {
     "next": "14.2.5",

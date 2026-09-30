@@ -253,15 +253,20 @@ async function run() {
     eq(await grantsCount(Rp, fx.coupons.cpnY), 1, "grants=1");
     eq(await completions(Rp, R("rec")), 1, "completions=1（リセット）");
   });
-  await test("E3 リセット後、R が spot1 → 新サイクル(cycle1) done=1（already ではない）", async () => {
+  await test("E3 リセット後でも“同日・同じスポット”は再取得できない（farming不可）", async () => {
     const r = await stamp(Rp, T("spot1"), R("rec"));
-    eq(r.already, false, "already=false（新サイクル）"); eq(r.done, 1, "done=1");
-    eq(await cycleCount(Rp, R("rec"), 1), 1, "cycle1=1");
+    eq(r.already, true, "already=true（同日同スポットは1回まで）");
+    eq(await grantsCount(Rp, fx.coupons.cpnY), 1, "grants は1のまま");
+    eq(await cycleCount(Rp, R("rec"), 1), 0, "新サイクルには積み上がらない");
   });
-  await test("E4 サイクル1を完走 → 再度付与、grants=2、completions=2", async () => {
+  await test("E4 日が変われば再完了できる（前日分をバックデート→当日 spot1,spot2 で cycle1 完了）", async () => {
+    const yesterday = new Date(Date.now() + 9 * 3600e3 - 86400e3).toISOString().slice(0, 10);
+    await db.from("stamps").update({ stamp_date: yesterday })
+      .eq("participant_id", Rp).eq("reward_id", R("rec")); // cycle0 の2件を前日へ
+    await stamp(Rp, T("spot1"), R("rec"));
     const r = await stamp(Rp, T("spot2"), R("rec"));
     eq(r.completed, true, "completed");
-    eq(await grantsCount(Rp, fx.coupons.cpnY), 2, "grants=2（毎回付与）");
+    eq(await grantsCount(Rp, fx.coupons.cpnY), 2, "grants=2（別日なので再付与）");
     eq(await completions(Rp, R("rec")), 2, "completions=2");
   });
 

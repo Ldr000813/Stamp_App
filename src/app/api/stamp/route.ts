@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
   const { data: card } = await db.from("rewards")
     .select("id, active, required_stamps, recurring, campaign_id").eq("id", rewardId).maybeSingle();
   if (!card || !card.active) return NextResponse.json({ error: "card_not_found" }, { status: 404 });
+  // Defend against a misconfigured card (required 0 or negative would grant on
+  // every scan / never complete). Treat the threshold as at least 1.
+  const required = Math.max(1, Number(card.required_stamps) || 1);
 
   // The spot must be one of this card's target spots.
   const { data: target } = await db.from("card_spots")
@@ -45,8 +48,8 @@ export async function POST(req: NextRequest) {
 
   const before = await countIn();
   // Non-recurring card already finished → nothing to do.
-  if (!card.recurring && before >= card.required_stamps) {
-    return NextResponse.json({ already_complete: true, done: before, total: card.required_stamps });
+  if (!card.recurring && before >= required) {
+    return NextResponse.json({ already_complete: true, done: before, total: required });
   }
 
   // JST calendar date, so "one per spot per day" matches Japan's day boundary.
@@ -63,7 +66,7 @@ export async function POST(req: NextRequest) {
   // simultaneous scans that complete a card both read before=0 and each think
   // they are only the 1st stamp, so completion (and the coupon) gets missed.
   const done = already ? before : await countIn();
-  const completed = !already && done >= card.required_stamps;
+  const completed = !already && done >= required;
 
   let granted: any[] = [];
   if (completed) {
@@ -96,7 +99,7 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    already, done, total: card.required_stamps,
+    already, done, total: required,
     completed, recurring: card.recurring, granted,
   });
 }
