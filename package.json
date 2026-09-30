@@ -20,7 +20,8 @@
     "test:all": "node scripts/test_all.mjs",
     "test:chaos": "node scripts/test_chaos.mjs",
     "test:chaos2": "node scripts/test_chaos2.mjs",
-    "test:exploit": "node scripts/test_exploit.mjs"
+    "test:exploit": "node scripts/test_exploit.mjs",
+    "test:redteam": "node scripts/test_redteam.mjs"
   },
   "dependencies": {
     "next": "14.2.5",

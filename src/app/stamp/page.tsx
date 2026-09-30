@@ -5,15 +5,29 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 
+const HANDOFF_FLAG = "tonari_handoff_prompted";
+
 function StampInner() {
   const { t, lang } = useI18n();
-  const { participantId, ready } = useAuth();
+  const { participantId, ready, isAnonymous, linkGoogle } = useAuth();
   const params = useSearchParams();
   const token = params.get("spot");
   const [spot, setSpot] = useState<any>(null);
   const [cards, setCards] = useState<any[]>([]);
   const [phase, setPhase] = useState<"loading" | "pick" | "busy" | "error">("loading");
   const [result, setResult] = useState<any>(null); // {kind, card, granted, recurring}
+  const [pendingHandoff, setPendingHandoff] = useState(false); // one-time "set up handoff" prompt
+
+  // After the FIRST stamp on an anonymous (not-linked) account, nudge the user to
+  // set up Google hand-off — otherwise clearing data / changing device loses stamps.
+  function maybePromptHandoff() {
+    if (!isAnonymous) return;
+    try {
+      if (localStorage.getItem(HANDOFF_FLAG)) return;
+      localStorage.setItem(HANDOFF_FLAG, "1");
+    } catch { /* ignore */ }
+    setPendingHandoff(true);
+  }
 
   async function loadCards() {
     if (!participantId) return;
@@ -46,8 +60,8 @@ function StampInner() {
     if (res.not_target) setResult({ kind: "not_target", card });
     else if (res.already) setResult({ kind: "already", card });
     else if (res.already_complete) setResult({ kind: "done", card });
-    else if (res.completed) setResult({ kind: "completed", card, granted: res.granted || [], recurring: res.recurring });
-    else setResult({ kind: "got", card });
+    else if (res.completed) { setResult({ kind: "completed", card, granted: res.granted || [], recurring: res.recurring }); maybePromptHandoff(); }
+    else { setResult({ kind: "got", card }); maybePromptHandoff(); }
     setPhase("pick");
   }
 
@@ -113,6 +127,41 @@ function StampInner() {
           </div>
         )}
       </main>
+
+      {/* One-time hand-off nudge. Held back until the completion modal is closed. */}
+      {pendingHandoff && result?.kind !== "completed" && (
+        <div className="fixed inset-0 z-[85] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xs w-full p-6 text-center">
+            <div className="text-5xl mb-2">📱</div>
+            <h3 className="text-lg font-extrabold text-[#4b4640]">
+              {lang === "ja" ? "スタンプを保存しましょう" : "Save your stamp"}
+            </h3>
+            <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+              {lang === "ja"
+                ? "いまはお試しの状態です。このまま閉じても遊べますが、機種変更やデータ削除でスタンプが消えることがあります。Googleで引き継ぎを設定すると、どの端末でも安全に保存されます。"
+                : "Your progress is only on this device for now. Link Google so your stamps are safely kept even if you clear data or switch phones."}
+            </p>
+            <p className="text-[11px] text-gray-400 mt-2">
+              {lang === "ja" ? "※この案内は初回のみ表示されます" : "Shown once."}
+            </p>
+            <button
+              onClick={() => { setPendingHandoff(false); linkGoogle(); }}
+              className="mt-4 w-full rounded-full bg-white border border-slate-300 text-slate-700 font-bold py-3 flex items-center justify-center gap-2 shadow-sm"
+            >
+              <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z" />
+                <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5C43.3 37.4 46.1 31.5 46.1 24.5z" />
+                <path fill="#FBBC05" d="M10.4 28.3c-.5-1.4-.8-2.8-.8-4.3s.3-3 .8-4.3l-7.8-6.1C.9 16.7 0 20.2 0 24s.9 7.3 2.6 10.4l7.8-6.1z" />
+                <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.8-5.8l-7.1-5.5c-2 1.3-4.5 2.1-8.7 2.1-6.3 0-11.7-3.7-13.6-9.1l-7.8 6.1C6.5 42.6 14.6 48 24 48z" />
+              </svg>
+              {lang === "ja" ? "Googleで引き継ぎを設定" : "Link with Google"}
+            </button>
+            <button onClick={() => setPendingHandoff(false)} className="mt-2 text-xs text-gray-400 underline">
+              {lang === "ja" ? "あとで（このまま続ける）" : "Later"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {result?.kind === "completed" && (
         <div className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center p-4" onClick={() => setResult(null)}>
