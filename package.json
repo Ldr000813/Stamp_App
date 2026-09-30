@@ -8,7 +8,17 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:stamps": "node scripts/test_stamps.mjs",
+    "test:coupons": "node scripts/test_coupons.mjs",
+    "test:owners": "node scripts/test_owners.mjs",
+    "test:events": "node scripts/test_events.mjs",
+    "test:preserve": "node scripts/test_preserve.mjs",
+    "test:rewards": "node scripts/test_rewards.mjs",
+    "test:directions": "node scripts/test_directions.mjs",
+    "test:adminsec": "node scripts/test_admin_security.mjs",
+    "test:all": "node scripts/test_all.mjs",
+    "test:chaos": "node scripts/test_chaos.mjs"
   },
   "dependencies": {
     "next": "14.2.5",

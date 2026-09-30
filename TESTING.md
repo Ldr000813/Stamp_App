@@ -1,33 +1,67 @@
-# テスト手順（自動テスト）
+# テストガイド（最終チェック）
 
-このプロジェクトの「壊れたら困るロジック」を Vitest で自動テストしています。
+このプロジェクトの回帰テスト一覧と実行方法です。コア機能（スタンプの正確性・クーポンの期限と単一使用・権限分離・スタンプの絶対保全・地図ピン精度・管理APIのアクセス制御）を企業レベルで検証します。
 
-## セットアップ & 実行（手元PC）
+## まとめて実行（推奨）
 
 ```bash
-cd Stamp_app
-npm install          # 初回のみ（vitest を含む依存を取得）
-npm test             # 全テストを1回実行
-npm run test:watch   # ファイルを保存するたびに自動で再実行（開発中に便利）
+npm run test:all
 ```
 
-`npm test` が緑（すべて PASS）になれば OK です。赤（FAIL）が出たら、その関数の挙動が壊れた合図なので、直したら再実行します。
+全スイートを連続実行し、末尾に総合サマリを表示します。1つでも失敗すると終了コード1になります。
+ローカルの開発サーバーに向ける場合:
 
-## テスト対象（tests/ 配下）
+```bash
+# Windows (PowerShell)
+$env:API_BASE="http://localhost:3000"; npm run test:all
+# macOS / Linux
+API_BASE=http://localhost:3000 npm run test:all
+```
 
-重要ロジックを純粋な関数（`src/lib/`）に切り出し、そこを検証しています。
+---
 
-- **rewards.test.ts** — 特典の進捗計算。「その特典の作成時刻より後に押したスタンプだけをカウントする」「必要数に達したら解放」という肝の仕様を固定。
-- **apiAuth.test.ts** — 権限分離。`isAdminEmail`（管理者判定・大文字小文字無視）と `canManageSpotDecision`（オーナーは自分の店舗だけ／他人の店舗は不可／管理者は全部可）を検証。
-- **datetime.test.ts** — イベント日時の表示・入力変換（`pad` / `toLocalInput` / `fmtDT`）。
-- **mapurl.test.ts** — GoogleマップURLからの座標抽出。実ピン（`!3d!4d`）を地図中心（`@`）より優先する＝「ずれる」対策の回帰防止。
+## 実行系スイート（本番/指定APIを叩く）
 
-## この自動テストがカバーしないもの（別途、手動 or E2E で確認）
+いずれも **使い捨てUUIDの参加者・`ZZTEST_` 接頭辞のフィクスチャ・一時認証ユーザー**のみを使い、実行後に自動で全削除します。既存の実データには触れません（テスト用キャンペーンは `active=false` で作るため、参加者画面には出ません）。
 
-純粋ロジックの外側（DBやブラウザ操作を伴う部分）はここでは検証していません。次のフェーズで手動チェックリストや E2E（Playwright / ブラウザ操作）で確認します。
+| コマンド | 対象 | 主な観点 |
+|---|---|---|
+| `npm run test:stamps` | スタンプ付与 `/api/stamp` | 入力検証／無効スポット・カード／対象外／ユーザー分離／同日重複防止／完走・クーポン付与（grant-once）／定期カードのサイクルリセット／日付境界／同時実行／データ保全 |
+| `npm run test:coupons` | クーポン `/api/coupons`・`/redeem` | 一覧・expired フラグ／所有者チェック／正常使用／二重使用（冪等）／**期限切れ410で消費されない**／分岐優先順位／同時実行 |
+| `npm run test:owners` | オーナー権限 `/api/owner/*`・`/api/admin/owners` | 認証必須／担当スポットのみ可視／他店舗の作成・更新・削除は403／管理APIは管理者専用／許可リスト追加削除の反映 |
+| `npm run test:events` | イベント表示 `/api/events` | 終了フラグ／終了24hで非表示（境界）／表示ウィンドウ／active フィルタ／並び順／スポット詳細の絞り込み |
+| `npm run test:preserve` | スポット管理＋スタンプ保全 | 管理APIは管理者専用／**スポット削除でもスタンプは消えない**（spot_id→NULL・スナップショット保持）／キャンペーン削除でも保持／参考: カード削除時の挙動 |
+| `npm run test:rewards` | 特典集計 `/api/rewards` | レスポンス構造／target_spots 一致／進捗加算・他カード不変／ユーザー分離／unlocked 整合／サイクル切替 |
+| `npm run test:directions` | 行き方リンク `/api/go` | 常に開けるURL・**goo.gl短縮を返さない**／座標・住所・名前フォールバック／異常系 |
+| `npm run test:adminsec` | 管理APIアクセス制御スイープ | 全 `/api/admin/*` がトークン無し・非管理者・匿名参加者で **401** 拒否／オーナーAPIも匿名を拒否 |
+| `npm run test:chaos` | カオス／ストレス（**わざと壊しにいく**） | 連打／同時スキャン／**完了レースのクーポン取りこぼし検出**／不正・悪意入力のクラッシュ耐性／多人数混在／クーポン乱打。競合を突くため環境により FAIL＝バグ検出（`test:all` には含めない） |
 
-- 実際のSupabase接続・RLS・サービスロールの挙動
-- QR読取 → スタンプ登録 → 反映の通し動作
-- クーポンのスライド使用（UI操作）
-- 管理画面/オーナー画面のHTTP経由の権限（APIの認証ヘッダ検証まで含む通し）
-- 「取得済みスタンプは完全削除しても消えない」等のDBレベルのデータ整合性
+---
+
+## ユニットテスト（vitest・ネットワーク不要）
+
+```bash
+npm test
+```
+
+| ファイル | 対象 |
+|---|---|
+| `tests/apiAuth.test.ts` | 権限判定ヘルパー |
+| `tests/datetime.test.ts` | 日付・時刻処理 |
+| `tests/mapurl.test.ts` | 座標抽出（基本） |
+| `tests/mapurl_precision.test.ts` | 座標抽出の精密ケース（**@中心にずれる=亀岡ドリフト回帰テスト**、負座標・3桁経度・高精度・複数ピン・フォールバック） |
+| `tests/rewards.test.ts` | 特典ロジック |
+
+---
+
+## 前提
+
+- `.env.local` に `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` が必要（実行系スイートが使用）。
+- Node.js 18 以上（グローバル `fetch` を使用）。
+- Supabase の Authentication で「Email/Password」「Anonymous sign-ins」が有効であること（テスト用ユーザーの作成に使用）。
+
+## 安全性メモ
+
+- 実行系スイートは書き込みを伴いますが、全て隔離フィクスチャ＋使い捨て参加者で、`try/finally` により必ず後片付けします。
+- `test:directions` と `test:events` は実行中の数秒だけテストデータが公開APIに現れる可能性があります（未ローンチ想定）。
+- `SUPABASE_SERVICE_ROLE_KEY` はサーバー専用の鍵です。テストはローカル実行専用とし、CI等に載せる場合は秘密として扱ってください。

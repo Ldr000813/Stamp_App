@@ -59,7 +59,10 @@ export async function POST(req: NextRequest) {
   const already = !!insErr && (insErr as any).code === "23505"; // this spot already on this card/cycle
   if (insErr && !already) return NextResponse.json({ error: "insert_failed" }, { status: 500 });
 
-  const done = already ? before : before + 1;
+  // Count AUTHORITATIVELY after the insert. Reading "before + 1" is racy: two
+  // simultaneous scans that complete a card both read before=0 and each think
+  // they are only the 1st stamp, so completion (and the coupon) gets missed.
+  const done = already ? before : await countIn();
   const completed = !already && done >= card.required_stamps;
 
   let granted: any[] = [];
@@ -69,21 +72,26 @@ export async function POST(req: NextRequest) {
     const coupons = (links || []).map((l: any) => l.coupon).filter((c: any) => c && c.active);
     const expires_at = plusTwoMonths();
     for (const c of coupons || []) {
-      // Non-recurring: grant once. Recurring: grant every completion.
-      if (!card.recurring) {
-        const { data: exists } = await db.from("coupon_grants")
-          .select("id").eq("coupon_id", c.id).eq("participant_id", participantId).limit(1).maybeSingle();
-        if (exists) continue;
-      }
-      await db.from("coupon_grants").insert({ coupon_id: c.id, participant_id: participantId, expires_at });
-      granted.push({ title_ja: c.title_ja, title_en: c.title_en, expires_at });
+      // Grant is keyed to (participant, card, coupon, cycle) with a UNIQUE index,
+      // so concurrent completions collapse to exactly ONE grant (no miss, no dup).
+      const { data: ins, error: gErr } = await db.from("coupon_grants")
+        .insert({ coupon_id: c.id, participant_id: participantId, reward_id: card.id, cycle, expires_at })
+        .select("id");
+      if (!gErr && ins && ins.length) granted.push({ title_ja: c.title_ja, title_en: c.title_en, expires_at });
+      // gErr 23505 = another concurrent request already granted this cycle → skip silently.
     }
-    // Recurring: bump completions so the card resets to a fresh cycle.
+    // Recurring: advance the completion counter exactly once (conditional on the
+    // current cycle) so the card resets without double-advancing under a race.
     if (card.recurring) {
-      await db.from("card_state").upsert(
-        { participant_id: participantId, reward_id: card.id, completions: cycle + 1 },
-        { onConflict: "participant_id,reward_id" }
-      );
+      const { data: adv } = await db.from("card_state")
+        .update({ completions: cycle + 1 })
+        .eq("participant_id", participantId).eq("reward_id", card.id).eq("completions", cycle)
+        .select("participant_id");
+      if (!adv || adv.length === 0) {
+        // No row at this cycle yet (first completion) → create it; PK collision under
+        // a race means someone else already advanced, which is fine to ignore.
+        await db.from("card_state").insert({ participant_id: participantId, reward_id: card.id, completions: cycle + 1 });
+      }
     }
   }
 
