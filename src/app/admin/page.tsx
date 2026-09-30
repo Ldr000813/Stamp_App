@@ -8,13 +8,14 @@ import SpotEventManager from "@/components/SpotEventManager";
 import RewardManager from "@/components/RewardManager";
 import CouponManager from "@/components/CouponManager";
 import ImageUpload from "@/components/ImageUpload";
+import SpotOwners from "@/components/SpotOwners";
 import { Button, TextInput, TextArea, Field, Card, Segmented, Badge } from "@/components/ui";
 
 
 const emptyForm = {
   name_ja: "", name_en: "", description_ja: "", description_en: "",
   address_ja: "", address_en: "", image_url: "", category: "",
-  lat: "", lng: "", map_url: "", owner_email: "",
+  lat: "", lng: "", map_url: "",
 };
 
 const SESSION_MS = 60 * 60 * 1000; // admin session lifetime: 1 hour
@@ -33,6 +34,7 @@ export default function Admin() {
   const [confirmCode, setConfirmCode] = useState("");
   const [confirmInput, setConfirmInput] = useState("");
   const [qrModal, setQrModal] = useState<any>(null);
+  const [ownerModal, setOwnerModal] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function Admin() {
       address_ja: s.address_ja || "", address_en: s.address_en || "",
       image_url: s.image_url || "", category: s.category || "",
       lat: s.lat != null ? String(s.lat) : "", lng: s.lng != null ? String(s.lng) : "",
-      map_url: s.map_url || "", owner_email: s.owner_email || "",
+      map_url: s.map_url || "",
     });
     setMsg("");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -202,9 +204,9 @@ export default function Admin() {
               <Field label="場所（Googleマップの共有リンク）" hint="共有リンクを貼るだけでOK。保存時に「どの端末でも必ず開ける」形式へ自動変換します。" className="sm:col-span-2">
                 <TextInput placeholder="https://maps.app.goo.gl/..." value={form.map_url} onChange={(e) => set("map_url", e.target.value)} />
               </Field>
-              <Field label="店舗オーナーのメールアドレス（任意）" hint="このメールでログインした人だけが、この店舗のイベントを編集できます。" className="sm:col-span-2">
-                <TextInput type="email" placeholder="owner@example.com" value={form.owner_email} onChange={(e) => set("owner_email", e.target.value)} />
-              </Field>
+              <p className="text-xs text-slate-400 sm:col-span-2 -mt-1">
+                店舗オーナーは、追加後に一覧の各スポットの「オーナー」ボタンから設定できます（複数人可）。
+              </p>
               <div className="sm:col-span-2">
                 <Button type="submit">{editingId ? "更新する" : "＋ スポットを追加"}</Button>
               </div>
@@ -226,11 +228,12 @@ export default function Admin() {
                     <span className="text-slate-400 text-sm">/ {s.name_en}</span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5 truncate">
-                    {s.owner_email ? `オーナー: ${s.owner_email}` : "オーナー未設定（運営のみ編集可）"}
+                    イベント編集は「オーナー」ボタンで担当者を設定
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <Button onClick={() => editItem(s)} variant="secondary" size="sm">編集</Button>
+                  <Button onClick={() => setOwnerModal(s)} variant="secondary" size="sm">オーナー</Button>
                   <Button onClick={() => showQR(s)} variant="dark" size="sm">QR発行</Button>
                   {s.active
                     ? <Button onClick={() => deleteSpot(s)} variant="secondary" size="sm" className="text-rose-600 border-rose-200 hover:bg-rose-50">削除</Button>
@@ -279,6 +282,10 @@ export default function Admin() {
             </div>
           </Card>
         </div>
+      )}
+
+      {ownerModal && (
+        <SpotOwners spot={ownerModal} token={session.access_token} onClose={() => setOwnerModal(null)} />
       )}
 
       {qrModal && (

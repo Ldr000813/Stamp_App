@@ -5,24 +5,52 @@ import { useAuth } from "@/lib/auth";
 import SpotEventManager from "@/components/SpotEventManager";
 
 export default function OwnerPage() {
-  const { session, ready } = useAuth();
+  const { session, ready, isAnonymous, signInGoogle } = useAuth();
   const [spots, setSpots] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const token = session?.access_token as string | undefined;
   const email = session?.user?.email as string | undefined;
+  // Owners are identified by a real (Google) account, not the anonymous session.
+  const signedIn = !!session?.user && !isAnonymous && !!email;
 
   useEffect(() => {
-    if (!ready || !token) return;
+    if (!ready || !token || !signedIn) { if (ready) setLoading(false); return; }
     (async () => {
+      setLoading(true);
       const r = await fetch("/api/owner/spots", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
       if (r.ok) { const j = await r.json(); setSpots(j.spots || []); setIsAdmin(!!j.isAdmin); }
       setLoading(false);
     })();
-  }, [ready, token]);
+  }, [ready, token, signedIn]);
 
-  // When not logged in, the global AuthProvider shows the login screen instead of this page.
   if (!ready) return <main className="p-6 text-center text-gray-400">…</main>;
+
+  // Not signed in with a real account → prompt Google login (owners only).
+  if (!signedIn) {
+    return (
+      <main className="mx-auto max-w-sm px-4 pt-16 pb-10 text-center">
+        <div className="text-4xl mb-3">🏪</div>
+        <h1 className="text-xl font-bold text-[#4b4640]">店舗オーナーログイン</h1>
+        <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+          運営から店舗を割り当てられたメールアドレスの<b>Googleアカウント</b>でログインしてください。
+        </p>
+        <button
+          onClick={() => signInGoogle()}
+          className="mt-6 w-full rounded-full bg-white border border-slate-300 text-slate-700 font-bold py-3 flex items-center justify-center gap-2 shadow-sm"
+        >
+          <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z" />
+            <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5C43.3 37.4 46.1 31.5 46.1 24.5z" />
+            <path fill="#FBBC05" d="M10.4 28.3c-.5-1.4-.8-2.8-.8-4.3s.3-3 .8-4.3l-7.8-6.1C.9 16.7 0 20.2 0 24s.9 7.3 2.6 10.4l7.8-6.1z" />
+            <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.8-5.8l-7.1-5.5c-2 1.3-4.5 2.1-8.7 2.1-6.3 0-11.7-3.7-13.6-9.1l-7.8 6.1C6.5 42.6 14.6 48 24 48z" />
+          </svg>
+          Googleでログイン
+        </button>
+        <Link href="/" className="inline-block mt-6 text-sm text-gray-400 underline underline-offset-2">ユーザー画面へ戻る</Link>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-lg px-4 py-5">

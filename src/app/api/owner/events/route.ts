@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { getAuthEmail, isAdminEmail, canManageSpotDecision } from "@/lib/apiAuth";
+import { getAuthEmail } from "@/lib/apiAuth";
+import { ownedSpotIds, canManageSpot } from "@/lib/ownerAccess";
 
 export const dynamic = "force-dynamic";
-
-// Returns the caller's owned spot ids (or null = admin, meaning "all").
-async function ownedSpotIds(db: any, email: string): Promise<string[] | null> {
-  if (isAdminEmail(email)) return null;
-  const { data } = await db.from("spots").select("id").eq("owner_email", email);
-  return (data || []).map((s: any) => s.id);
-}
-async function canManageSpot(db: any, email: string, spotId: string | null): Promise<boolean> {
-  if (isAdminEmail(email)) return true;
-  if (!spotId) return false;
-  const { data } = await db.from("spots").select("owner_email").eq("id", spotId).maybeSingle();
-  return canManageSpotDecision(email, data?.owner_email, false);
-}
 
 export async function GET(req: NextRequest) {
   const email = await getAuthEmail(req);

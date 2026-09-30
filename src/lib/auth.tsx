@@ -122,7 +122,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAnonymous = !!session?.user?.is_anonymous;
   const refresh = useCallback(() => setTick((t) => t + 1), []);
   const clearAuthError = useCallback(() => setAuthError(""), []);
-  const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+  // Return to the SAME page after the Google round-trip (so owners land back on
+  // /owner, participants back on home). The Supabase redirect allowlist uses /**.
+  const redirectTo = typeof window !== "undefined" ? window.location.origin + window.location.pathname : undefined;
 
   // linkIdentity/signInWithOAuth return { error } instead of throwing. Surface it
   // (before the browser redirect) so a failed link never looks like "nothing happened".
