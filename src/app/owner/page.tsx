@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import SpotEventManager from "@/components/SpotEventManager";
 
@@ -11,6 +12,7 @@ const DEMO_PW = process.env.NEXT_PUBLIC_DEMO_OWNER_PW || "tonari2026";
 const DEMO_KEY = "owner_demo_viewer";
 
 export default function OwnerPage() {
+  const router = useRouter();
   const { session, ready, isAnonymous, signInGoogle } = useAuth();
   const [spots, setSpots] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -55,6 +57,7 @@ export default function OwnerPage() {
     if (demoId.trim() === DEMO_ID && demoPw === DEMO_PW) {
       try { sessionStorage.setItem(DEMO_KEY, "1"); } catch {}
       setDemo(true);
+      router.push("/"); // go straight to the home screen; owner screen stays viewable in demo mode
     } else {
       setDemoErr("IDまたはパスワードが違います。");
     }
