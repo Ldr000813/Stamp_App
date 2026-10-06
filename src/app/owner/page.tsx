@@ -9,11 +9,10 @@ import SpotEventManager from "@/components/SpotEventManager";
 // It grants NO real power: all actions are blocked and nothing is editable.
 const DEMO_ID = process.env.NEXT_PUBLIC_DEMO_OWNER_ID || "demo";
 const DEMO_PW = process.env.NEXT_PUBLIC_DEMO_OWNER_PW || "tonari2026";
-const DEMO_KEY = "owner_demo_viewer";
 
 export default function OwnerPage() {
   const router = useRouter();
-  const { session, ready, isAnonymous, signInGoogle } = useAuth();
+  const { session, ready, isAnonymous, signInGoogle, isDemo, enterDemo, exitDemo } = useAuth();
   const [spots, setSpots] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -21,56 +20,46 @@ export default function OwnerPage() {
   const email = session?.user?.email as string | undefined;
   const signedIn = !!session?.user && !isAnonymous && !!email;
 
-  // --- temporary viewer (demo) state ---
-  const [demo, setDemo] = useState(false);
+  // --- temporary viewer (demo) local inputs ---
   const [demoSpots, setDemoSpots] = useState<any[]>([]);
   const [demoId, setDemoId] = useState("");
   const [demoPw, setDemoPw] = useState("");
   const [demoErr, setDemoErr] = useState("");
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem(DEMO_KEY) === "1") setDemo(true);
-  }, []);
-
   // Real owner: load their spots.
   useEffect(() => {
-    if (!ready || !token || !signedIn || demo) { if (ready) setLoading(false); return; }
+    if (!ready || !token || !signedIn || isDemo) { if (ready) setLoading(false); return; }
     (async () => {
       setLoading(true);
       const r = await fetch("/api/owner/spots", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
       if (r.ok) { const j = await r.json(); setSpots(j.spots || []); setIsAdmin(!!j.isAdmin); }
       setLoading(false);
     })();
-  }, [ready, token, signedIn, demo]);
+  }, [ready, token, signedIn, isDemo]);
 
   // Demo viewer: load active spots (read-only, public).
   useEffect(() => {
-    if (!demo) return;
+    if (!isDemo) return;
     (async () => {
       const r = await fetch("/api/demo", { cache: "no-store" });
       if (r.ok) setDemoSpots((await r.json()).spots || []);
     })();
-  }, [demo]);
+  }, [isDemo]);
 
   function tempLogin(e: React.FormEvent) {
     e.preventDefault(); setDemoErr("");
     if (demoId.trim() === DEMO_ID && demoPw === DEMO_PW) {
-      try { sessionStorage.setItem(DEMO_KEY, "1"); } catch {}
-      setDemo(true);
+      enterDemo();
       router.push("/"); // go straight to the home screen; owner screen stays viewable in demo mode
     } else {
       setDemoErr("IDまたはパスワードが違います。");
     }
   }
-  function exitDemo() {
-    try { sessionStorage.removeItem(DEMO_KEY); } catch {}
-    setDemo(false); setDemoId(""); setDemoPw("");
-  }
 
   if (!ready) return <main className="p-6 text-center text-gray-400">…</main>;
 
   // --- Temporary viewer mode: show the owner screen read-only ---
-  if (demo) {
+  if (isDemo) {
     return (
       <main className="mx-auto max-w-lg px-4 py-5">
         <div className="flex items-center justify-between gap-2 mb-3">

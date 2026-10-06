@@ -12,12 +12,16 @@ type Ctx = {
   tick: number;
   authError: string;
   clearAuthError: () => void;
+  isDemo: boolean;
+  enterDemo: () => void;
+  exitDemo: () => void;
   supabase: ReturnType<typeof supabaseBrowser>;
   refresh: () => void;
   linkGoogle: (next?: string) => Promise<AuthResult>;
   signInGoogle: (next?: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
+const DEMO_KEY = "owner_demo_viewer";
 const AuthContext = createContext<Ctx>(null as any);
 
 // Parse an OAuth error returned in the URL (either ?query or #hash form).
@@ -52,8 +56,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [tick, setTick] = useState(0);
   const [authError, setAuthError] = useState("");
+  const [isDemo, setIsDemo] = useState(false);
   const path = usePathname() || "";
   const isAdmin = path.startsWith("/admin");
+
+  // Temporary "view-only" visitor flag (shared app-wide). While set, every login /
+  // hand-off feature is disabled and a persistent notice is shown.
+  useEffect(() => {
+    try { if (sessionStorage.getItem(DEMO_KEY) === "1") setIsDemo(true); } catch { /* ignore */ }
+  }, []);
+  const enterDemo = useCallback(() => { try { sessionStorage.setItem(DEMO_KEY, "1"); } catch {} setIsDemo(true); }, []);
+  const exitDemo = useCallback(() => { try { sessionStorage.removeItem(DEMO_KEY); } catch {} setIsDemo(false); }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -153,8 +166,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Persistent "you are a temporary (view-only) user" banner, shown app-wide.
+  const banner = isDemo && !isAdmin ? (
+    <div className="sticky top-0 z-[70] bg-amber-400 text-[#4b4640] text-center text-xs font-bold px-3 py-1.5 flex items-center justify-center gap-2">
+      <span>👀 一時ユーザー（閲覧専用）です — 編集・ログイン機能はご利用いただけません</span>
+      <button onClick={exitDemo} className="underline underline-offset-2 shrink-0">終了</button>
+    </div>
+  ) : null;
+
   return (
-    <AuthContext.Provider value={{ session, participantId, ready, isAnonymous, tick, authError, clearAuthError, supabase, refresh, linkGoogle, signInGoogle, signOut }}>
+    <AuthContext.Provider value={{ session, participantId, ready, isAnonymous, tick, authError, clearAuthError, isDemo, enterDemo, exitDemo, supabase, refresh, linkGoogle, signInGoogle, signOut }}>
+      {banner}
       {content}
     </AuthContext.Provider>
   );

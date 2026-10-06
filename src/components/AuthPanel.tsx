@@ -15,10 +15,22 @@ function GoogleG() {
 }
 
 export default function AuthPanel() {
-  const { session, isAnonymous, authError, clearAuthError, linkGoogle, signInGoogle, signOut } = useAuth();
+  const { session, isAnonymous, authError, clearAuthError, isDemo, linkGoogle, signInGoogle, signOut } = useAuth();
   const { lang } = useI18n();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+
+  // Temporary (view-only) user: no login / hand-off available.
+  if (isDemo) {
+    return (
+      <div className="mt-6 mx-auto max-w-xs rounded-2xl bg-slate-50 border border-slate-200 p-4 text-center">
+        <p className="text-sm font-bold text-slate-600">👀 {lang === "ja" ? "一時ユーザー（閲覧専用）" : "Temporary viewer"}</p>
+        <p className="text-xs text-gray-500 mt-1">
+          {lang === "ja" ? "引き継ぎ・ログイン機能はご利用いただけません。" : "Login and hand-off features are disabled."}
+        </p>
+      </div>
+    );
+  }
 
   // Signed in with a real (Google) account.
   if (session?.user && !isAnonymous) {

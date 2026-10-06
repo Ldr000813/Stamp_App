@@ -10,7 +10,7 @@ const HANDOFF_FLAG = "tonari_handoff_prompted";
 
 function StampInner() {
   const { t, lang } = useI18n();
-  const { participantId, ready, isAnonymous, linkGoogle, session } = useAuth();
+  const { participantId, ready, isAnonymous, linkGoogle, session, isDemo } = useAuth();
   const params = useSearchParams();
   const token = params.get("spot");
   const [spot, setSpot] = useState<any>(null);
@@ -22,7 +22,7 @@ function StampInner() {
   // After the FIRST stamp on an anonymous (not-linked) account, nudge the user to
   // set up Google hand-off — otherwise clearing data / changing device loses stamps.
   function maybePromptHandoff() {
-    if (!isAnonymous) return;
+    if (!isAnonymous || isDemo) return;
     try {
       if (localStorage.getItem(HANDOFF_FLAG)) return;
       localStorage.setItem(HANDOFF_FLAG, "1");
@@ -138,7 +138,7 @@ function StampInner() {
 
         {/* Persistent hand-off entry for anonymous users (e.g. after tapping "あとで").
             Hidden on the error screen — there's no stamp to save there. */}
-        {isAnonymous && phase !== "error" && (
+        {isAnonymous && phase !== "error" && !isDemo && (
           <div className="mt-8 rounded-2xl bg-[#EAF6F3] border border-[#CDE9E3] p-4 text-center">
             <p className="text-sm font-bold text-[#33A6A0]">📱 {lang === "ja" ? "スタンプを保存・引き継ぎ" : "Save & carry your stamps"}</p>
             <p className="text-xs text-gray-500 mt-1">
