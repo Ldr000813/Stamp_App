@@ -8,7 +8,7 @@ const emptyForm = {
   image_url: "", starts_at: "", ends_at: "",
 };
 
-export default function SpotEventManager({ token, spots, apiBase = "/api/admin/events", onUploadingChange }: { token: string; spots: any[]; apiBase?: string; onUploadingChange?: (b: boolean) => void }) {
+export default function SpotEventManager({ token, spots, apiBase = "/api/admin/events", onUploadingChange, readOnly = false }: { token: string; spots: any[]; apiBase?: string; onUploadingChange?: (b: boolean) => void; readOnly?: boolean }) {
   const [events, setEvents] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [formSpot, setFormSpot] = useState<string | null>(null); // spot whose add/edit form is open
@@ -16,9 +16,18 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
   const [form, setForm] = useState<any>({ ...emptyForm });
   const [msg, setMsg] = useState("");
 
+  // Temporary (viewer) user: every action is blocked with a clear alert.
+  function blocked() {
+    alert("一時ユーザーのため、この操作はできません（閲覧専用です）。");
+    return true;
+  }
+
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
   async function load() {
-    const r = await fetch(apiBase, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    const init: RequestInit = readOnly
+      ? { cache: "no-store" }
+      : { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" };
+    const r = await fetch(apiBase, init);
     if (r.ok) setEvents((await r.json()).events || []);
   }
   const set = (k: string, v: string) => setForm((f: any) => ({ ...f, [k]: v }));
@@ -30,11 +39,13 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
     eventsFor(spotId).filter((e) => new Date(e.ends_at || e.starts_at).getTime() >= now - 3600e3).length;
 
   function openAdd(spotId: string) {
+    if (readOnly) return void blocked();
     setExpanded(spotId); setFormSpot(spotId); setEditingId(null); setMsg("");
     const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(12, 0, 0, 0);
     setForm({ ...emptyForm, starts_at: toLocalInput(d.toISOString()) });
   }
   function openEdit(spotId: string | null, ev: any) {
+    if (readOnly) return void blocked();
     setExpanded(spotId); setFormSpot(spotId ?? "__none__"); setEditingId(ev.id); setMsg("");
     setForm({
       title_ja: ev.title_ja, title_en: ev.title_en,
@@ -46,6 +57,7 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
 
   async function submit(e: React.FormEvent, spotId: string | null) {
     e.preventDefault(); setMsg("");
+    if (readOnly) return void blocked();
     if (!form.title_ja || !form.title_en || !form.starts_at) { setMsg("イベント名(日/英)と開始日時は必須です"); return; }
     const payload = {
       spot_id: spotId,
@@ -62,6 +74,7 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
     if (r.ok) { closeForm(); load(); } else setMsg("保存に失敗しました");
   }
   async function del(ev: any) {
+    if (readOnly) return void blocked();
     if (!confirm(`「${ev.title_ja}」を削除しますか？`)) return;
     const r = await fetch(`${apiBase}?id=${ev.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
     if (r.ok) load();
@@ -129,6 +142,11 @@ export default function SpotEventManager({ token, spots, apiBase = "/api/admin/e
 
   return (
     <div className="space-y-3">
+      {readOnly && (
+        <div className="rounded-lg bg-amber-50 border border-amber-300 p-3 text-sm text-amber-800 font-bold">
+          👀 閲覧専用モード（一時ユーザー）：画面の確認のみ可能です。追加・編集・削除などの操作はできません。
+        </div>
+      )}
       <p className="text-sm text-gray-500">
         店舗（スポット）ごとにイベントを登録します。各オーナーは自分の店舗の行を開いて、日時とイベント内容を追加してください。
       </p>
