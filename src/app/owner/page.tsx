@@ -70,11 +70,15 @@ export default function OwnerPage() {
   if (demo) {
     return (
       <main className="mx-auto max-w-lg px-4 py-5">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-2 mb-3">
           <h1 className="text-xl font-bold text-[#4b4640]">店舗オーナー画面</h1>
-          <button onClick={exitDemo} className="text-sm text-gray-400 underline underline-offset-2">閲覧専用を終了</button>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link href="/" className="text-sm text-[#33A6A0] font-bold underline underline-offset-2">🏠 ユーザー画面へ</Link>
+            <button onClick={exitDemo} className="text-sm text-gray-400 underline underline-offset-2">終了</button>
+          </div>
         </div>
-        <p className="text-xs text-amber-700 font-bold mb-4">ログイン中: 一時ユーザー（閲覧専用）</p>
+        <p className="text-xs text-amber-700 font-bold mb-1">ログイン中: 一時ユーザー（閲覧専用）</p>
+        <p className="text-[11px] text-gray-400 mb-4">「ユーザー画面へ」から、参加者が見るホーム・イベント・地図・特典などもすべて閲覧できます。</p>
         <SpotEventManager token="" spots={demoSpots} apiBase="/api/events" readOnly />
       </main>
     );
